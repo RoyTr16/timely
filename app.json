@@ -33,7 +33,8 @@
         {
           "root": "src/app"
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ]
   }
 }

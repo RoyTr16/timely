@@ -64,6 +64,47 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
+  timeButtonRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  timeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radii.md,
+    backgroundColor: colors.surfaceElevated,
+  },
+  timeButtonActive: {
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  timeButtonText: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.medium,
+    color: colors.textPrimary,
+  },
+  pickerContainer: {
+    backgroundColor: 'transparent',
+    borderRadius: radii.sm,
+    overflow: 'hidden',
+    marginTop: spacing.sm,
+  },
+  pickerDoneButton: {
+    alignSelf: 'flex-end',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  pickerDoneText: {
+    fontSize: typography.sizes.base,
+    fontWeight: typography.weights.medium,
+    color: colors.accent,
+  },
   timeInput: {
     width: 72,
     paddingHorizontal: spacing.sm,
@@ -77,7 +118,6 @@ export const styles = StyleSheet.create({
   durationRow: {
     flexDirection: 'row',
     gap: spacing.xs,
-    flex: 1,
   },
   swatchRow: {
     flexDirection: 'row',
