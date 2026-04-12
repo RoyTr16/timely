@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useState, useMemo } from 'react';
-import { View, Text, Pressable, Keyboard } from 'react-native';
+import { View, Text, Pressable, Keyboard, TextInput } from 'react-native';
 
 import {
   BottomSheetModal,
@@ -7,13 +7,14 @@ import {
   BottomSheetView,
   BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet';
-import { Check } from 'lucide-react-native';
+import { Check, Clock, Zap, Repeat } from 'lucide-react-native';
 
 import { colors } from '../../types/theme';
-import type { RecurrenceRule } from '../../types/task';
+import type { RecurrenceRule, EnergyLevel } from '../../types/task';
 import { styles, COMPOSER_CONSTANTS } from './styles';
 
 type RecurrenceOption = 'none' | 'daily' | 'weekly';
+type ActiveTool = 'time' | 'energy' | 'recurrence' | null;
 
 interface RecurrenceBadge {
   key: RecurrenceOption;
@@ -21,7 +22,13 @@ interface RecurrenceBadge {
 }
 
 interface TaskComposerProps {
-  onAddTask: (input: { title: string; recurrence?: RecurrenceRule }) => void;
+  onAddTask: (input: {
+    title: string;
+    recurrence?: RecurrenceRule;
+    startTime?: string;
+    durationMinutes?: number;
+    energyLevel?: EnergyLevel;
+  }) => void;
 }
 
 const RECURRENCE_OPTIONS: RecurrenceBadge[] = [
@@ -30,12 +37,32 @@ const RECURRENCE_OPTIONS: RecurrenceBadge[] = [
   { key: 'weekly', label: 'Weekly' },
 ];
 
+const DURATION_OPTIONS = [
+  { value: 15, label: '15m' },
+  { value: 30, label: '30m' },
+  { value: 60, label: '1h' },
+];
+
+const ENERGY_OPTIONS: { value: EnergyLevel; label: string }[] = [
+  { value: 1, label: '⚡ Low' },
+  { value: 2, label: '⚡⚡ Med' },
+  { value: 3, label: '⚡⚡⚡ High' },
+];
+
 export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
   ({ onAddTask }, ref) => {
     const [title, setTitle] = useState('');
     const [recurrence, setRecurrence] = useState<RecurrenceOption>('none');
+    const [activeTool, setActiveTool] = useState<ActiveTool>(null);
+    const [startTime, setStartTime] = useState('');
+    const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
+    const [energyLevel, setEnergyLevel] = useState<EnergyLevel | null>(null);
 
     const snapPoints = useMemo(() => COMPOSER_CONSTANTS.snapPoints, []);
+
+    const handleToolPress = useCallback((tool: ActiveTool) => {
+      setActiveTool((prev) => (prev === tool ? null : tool));
+    }, []);
 
     const handleSave = useCallback(() => {
       const trimmedTitle = title.trim();
@@ -48,14 +75,24 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
         recurrenceRule = { type: 'weekly' };
       }
 
-      onAddTask({ title: trimmedTitle, recurrence: recurrenceRule });
+      onAddTask({
+        title: trimmedTitle,
+        recurrence: recurrenceRule,
+        startTime: startTime || undefined,
+        durationMinutes: durationMinutes ?? undefined,
+        energyLevel: energyLevel ?? undefined,
+      });
 
       // Reset and close
       setTitle('');
       setRecurrence('none');
+      setActiveTool(null);
+      setStartTime('');
+      setDurationMinutes(null);
+      setEnergyLevel(null);
       Keyboard.dismiss();
       (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss();
-    }, [title, recurrence, onAddTask, ref]);
+    }, [title, recurrence, startTime, durationMinutes, energyLevel, onAddTask, ref]);
 
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -96,27 +133,126 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
           />
         </View>
 
-        <View style={styles.badgeRow}>
-          {RECURRENCE_OPTIONS.map((option) => (
-            <Pressable
-              key={option.key}
-              style={[
-                styles.badge,
-                recurrence === option.key && styles.badgeActive,
-              ]}
-              onPress={() => setRecurrence(option.key)}
-            >
-              <Text
-                style={[
-                  styles.badgeText,
-                  recurrence === option.key && styles.badgeTextActive,
-                ]}
-              >
-                {option.label}
-              </Text>
-            </Pressable>
-          ))}
+        {/* Toolbox Icon Row */}
+        <View style={styles.toolboxRow}>
+          <Pressable
+            style={[styles.toolButton, activeTool === 'time' && styles.toolButtonActive]}
+            onPress={() => handleToolPress('time')}
+          >
+            <Clock
+              size={20}
+              color={activeTool === 'time' || startTime || durationMinutes ? colors.accent : colors.textMuted}
+            />
+          </Pressable>
+          <Pressable
+            style={[styles.toolButton, activeTool === 'energy' && styles.toolButtonActive]}
+            onPress={() => handleToolPress('energy')}
+          >
+            <Zap
+              size={20}
+              color={activeTool === 'energy' || energyLevel ? colors.accent : colors.textMuted}
+            />
+          </Pressable>
+          <Pressable
+            style={[styles.toolButton, activeTool === 'recurrence' && styles.toolButtonActive]}
+            onPress={() => handleToolPress('recurrence')}
+          >
+            <Repeat
+              size={20}
+              color={activeTool === 'recurrence' || recurrence !== 'none' ? colors.accent : colors.textMuted}
+            />
+          </Pressable>
         </View>
+
+        {/* Inline Control Area */}
+        {activeTool === 'energy' && (
+          <View style={styles.controlArea}>
+            <View style={styles.badgeRow}>
+              {ENERGY_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.value}
+                  style={[
+                    styles.badge,
+                    energyLevel === option.value && styles.badgeActive,
+                  ]}
+                  onPress={() => setEnergyLevel(energyLevel === option.value ? null : option.value)}
+                >
+                  <Text
+                    style={[
+                      styles.badgeText,
+                      energyLevel === option.value && styles.badgeTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {activeTool === 'time' && (
+          <View style={styles.controlArea}>
+            <View style={styles.timeRow}>
+              <TextInput
+                style={styles.timeInput}
+                value={startTime}
+                onChangeText={setStartTime}
+                placeholder="HH:mm"
+                placeholderTextColor={colors.textMuted}
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
+              />
+              <View style={styles.durationRow}>
+                {DURATION_OPTIONS.map((option) => (
+                  <Pressable
+                    key={option.value}
+                    style={[
+                      styles.badge,
+                      durationMinutes === option.value && styles.badgeActive,
+                    ]}
+                    onPress={() => setDurationMinutes(durationMinutes === option.value ? null : option.value)}
+                  >
+                    <Text
+                      style={[
+                        styles.badgeText,
+                        durationMinutes === option.value && styles.badgeTextActive,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </View>
+        )}
+
+        {activeTool === 'recurrence' && (
+          <View style={styles.controlArea}>
+            <View style={styles.badgeRow}>
+              {RECURRENCE_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.key}
+                  style={[
+                    styles.badge,
+                    recurrence === option.key && styles.badgeActive,
+                  ]}
+                  onPress={() => setRecurrence(option.key)}
+                >
+                  <Text
+                    style={[
+                      styles.badgeText,
+                      recurrence === option.key && styles.badgeTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
 
         <View style={styles.footer}>
           <Pressable

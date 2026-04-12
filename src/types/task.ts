@@ -19,6 +19,11 @@ export type RecurrenceRule =
   | { type: 'custom_days'; days: DayOfWeek[] };
 
 /**
+ * Energy level for task difficulty/effort estimation.
+ */
+export type EnergyLevel = 1 | 2 | 3;
+
+/**
  * Core Task entity stored in MMKV.
  */
 export interface Task {
@@ -28,4 +33,7 @@ export interface Task {
   createdAt: number;
   categoryId?: string;
   recurrence?: RecurrenceRule;
+  startTime?: string; // HH:mm format
+  durationMinutes?: number;
+  energyLevel?: EnergyLevel;
 }

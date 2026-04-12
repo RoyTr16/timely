@@ -44,6 +44,7 @@ export const colors = {
   border: '#1F1F1F',
   success: '#22C55E',
   danger: '#EF4444',
+  energyHigh: '#F97316', // Orange-500 for high energy tasks
 } as const;
 
 /**

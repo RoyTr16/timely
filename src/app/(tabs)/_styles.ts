@@ -20,7 +20,7 @@ export const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: spacing.sm,
     paddingBottom: spacing.sm,
-    gap: spacing.xs,
+    paddingTop: spacing.xs,
     flexGrow: 1,
   },
   emptyContainer: {

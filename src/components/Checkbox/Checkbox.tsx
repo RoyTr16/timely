@@ -9,6 +9,7 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 import { Check } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 
 import { colors, timing } from '../../types/theme';
 import { styles, CHECKBOX_CONSTANTS } from './styles';
@@ -37,6 +38,11 @@ export function Checkbox({ isChecked, onToggle }: CheckboxProps) {
     scale.value = withSpring(1, { damping: 15, stiffness: 400 });
   }, [scale]);
 
+  const handleToggle = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onToggle();
+  }, [onToggle]);
+
   const containerAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
     backgroundColor: interpolateColor(
@@ -58,7 +64,7 @@ export function Checkbox({ isChecked, onToggle }: CheckboxProps) {
 
   return (
     <AnimatedPressable
-      onPress={onToggle}
+      onPress={handleToggle}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       style={[styles.container, containerAnimatedStyle]}

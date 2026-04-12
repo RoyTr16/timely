@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { storage, StorageKeys } from '../store/mmkv';
 import { isTaskDueToday } from '../utils/dateEngine';
-import type { Task, RecurrenceRule } from '../types/task';
+import type { Task, RecurrenceRule, EnergyLevel } from '../types/task';
 
 const STORAGE_KEY = `app.${StorageKeys.TASKS}`;
 
@@ -10,6 +10,9 @@ interface NewTaskInput {
   title: string;
   categoryId?: string;
   recurrence?: RecurrenceRule;
+  startTime?: string;
+  durationMinutes?: number;
+  energyLevel?: EnergyLevel;
 }
 
 interface UseTasksReturn {
@@ -62,6 +65,9 @@ export function useTasks(): UseTasksReturn {
         createdAt: Date.now(),
         categoryId: input.categoryId,
         recurrence: input.recurrence,
+        startTime: input.startTime,
+        durationMinutes: input.durationMinutes,
+        energyLevel: input.energyLevel,
       };
 
       persistTasks([newTask, ...tasks]);
@@ -87,11 +93,18 @@ export function useTasks(): UseTasksReturn {
     [tasks, persistTasks]
   );
 
-  // Derive tasks that are due today
-  const todayTasks = useMemo(
-    () => tasks.filter(isTaskDueToday),
-    [tasks]
-  );
+  // Derive tasks that are due today, sorted chronologically
+  const todayTasks = useMemo(() => {
+    const filtered = tasks.filter(isTaskDueToday);
+    return filtered.sort((a, b) => {
+      // Tasks without startTime ("All Day") come first
+      if (!a.startTime && !b.startTime) return 0;
+      if (!a.startTime) return -1;
+      if (!b.startTime) return 1;
+      // Both have startTime, sort chronologically
+      return a.startTime.localeCompare(b.startTime);
+    });
+  }, [tasks]);
 
   // Derive tasks NOT due today (backlog)
   const backlogTasks = useMemo(

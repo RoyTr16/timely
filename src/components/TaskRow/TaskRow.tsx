@@ -1,5 +1,5 @@
-import { useCallback, useEffect } from 'react';
-import { Pressable, View } from 'react-native';
+import { useCallback, useEffect, useMemo } from 'react';
+import { Pressable, View, Text } from 'react-native';
 
 import Animated, {
   useSharedValue,
@@ -8,12 +8,12 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { Repeat, Trash2 } from 'lucide-react-native';
+import { Repeat, Trash2, Zap } from 'lucide-react-native';
 
 import { colors, timing } from '../../types/theme';
 import type { Task } from '../../types/task';
 import { Checkbox } from '../Checkbox';
-import { styles, TASKROW_CONSTANTS } from './styles';
+import { styles, TASKROW_CONSTANTS, getEnergyColor } from './styles';
 
 interface TaskRowProps {
   task: Task;
@@ -48,6 +48,18 @@ export function TaskRow({ task, onToggle, onDelete }: TaskRowProps) {
   }));
 
   const hasRecurrence = Boolean(task.recurrence);
+  const hasTimeInfo = Boolean(task.startTime || task.durationMinutes);
+
+  const timeInfoText = useMemo(() => {
+    if (!hasTimeInfo) return null;
+    const parts: string[] = [];
+    if (task.startTime) parts.push(task.startTime);
+    if (task.durationMinutes) {
+      const mins = task.durationMinutes;
+      parts.push(mins >= 60 ? `${mins / 60}h` : `${mins}m`);
+    }
+    return parts.join(' • ');
+  }, [task.startTime, task.durationMinutes, hasTimeInfo]);
 
   const renderRightActions = useCallback(
     () => (
@@ -60,6 +72,7 @@ export function TaskRow({ task, onToggle, onDelete }: TaskRowProps) {
 
   return (
     <View style={styles.swipeableContainer}>
+      <View style={styles.timelineLine} />
       <ReanimatedSwipeable
         friction={2}
         rightThreshold={TASKROW_CONSTANTS.swipeThreshold}
@@ -73,19 +86,37 @@ export function TaskRow({ task, onToggle, onDelete }: TaskRowProps) {
             pressed && { opacity: TASKROW_CONSTANTS.activeOpacity },
           ]}
         >
-          <Checkbox isChecked={task.isCompleted} onToggle={handleToggle} />
-          <Animated.View style={styles.content}>
-            <Animated.Text style={[styles.title, titleAnimatedStyle]}>
-              {task.title}
-            </Animated.Text>
-            {hasRecurrence && (
-              <Repeat
-                size={TASKROW_CONSTANTS.recurrenceIconSize}
-                color={colors.textSecondary}
-                style={styles.recurrenceIcon}
+          <View style={styles.timelineContainer}>
+            <Checkbox isChecked={task.isCompleted} onToggle={handleToggle} />
+          </View>
+          <View style={styles.contentWrapper}>
+            <Animated.View style={styles.content}>
+              <View style={styles.titleContainer}>
+                <Animated.Text style={[styles.title, titleAnimatedStyle]}>
+                  {task.title}
+                </Animated.Text>
+                {timeInfoText && (
+                  <Text style={styles.timeInfo}>{timeInfoText}</Text>
+                )}
+              </View>
+              {hasRecurrence && (
+                <Repeat
+                  size={TASKROW_CONSTANTS.recurrenceIconSize}
+                  color={colors.textSecondary}
+                  style={styles.recurrenceIcon}
+                />
+              )}
+            </Animated.View>
+          </View>
+          {task.energyLevel && (
+            <View style={styles.energyIndicator}>
+              <Zap
+                size={TASKROW_CONSTANTS.energyIconSize}
+                color={getEnergyColor(task.energyLevel)}
+                fill={getEnergyColor(task.energyLevel)}
               />
-            )}
-          </Animated.View>
+            </View>
+          )}
         </Pressable>
       </ReanimatedSwipeable>
     </View>

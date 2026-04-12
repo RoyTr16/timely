@@ -17,10 +17,30 @@ export const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: 0,
   },
-  badgeRow: {
+  toolboxRow: {
     flexDirection: 'row',
     gap: spacing.xs,
     marginBottom: spacing.sm,
+  },
+  toolButton: {
+    width: spacing.xxl,
+    height: spacing.xxl,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surfaceElevated,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  toolButtonActive: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  controlArea: {
+    marginBottom: spacing.sm,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
   },
   badge: {
     paddingHorizontal: spacing.sm,
@@ -38,6 +58,26 @@ export const styles = StyleSheet.create({
   badgeTextActive: {
     color: colors.textPrimary,
     fontWeight: typography.weights.medium,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  timeInput: {
+    width: 72,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surfaceElevated,
+    color: colors.textPrimary,
+    fontSize: typography.sizes.sm,
+    textAlign: 'center',
+  },
+  durationRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    flex: 1,
   },
   footer: {
     flexDirection: 'row',
@@ -67,6 +107,6 @@ export const styles = StyleSheet.create({
 });
 
 export const COMPOSER_CONSTANTS = {
-  snapPoints: ['45%'],
+  snapPoints: ['55%'],
   saveIconSize: 20,
 } as const;
