@@ -77,6 +77,9 @@ export const styles = StyleSheet.create({
   energyIndicator: {
     marginLeft: spacing.xs,
   },
+  templateIndicator: {
+    marginLeft: spacing.xs,
+  },
   deleteAction: {
     width: 80,
     height: '100%',

@@ -16,6 +16,7 @@ interface NewTaskInput {
   color?: string;
   icon?: string;
   scheduledDate?: string;
+  isTemplate?: boolean;
 }
 
 interface UseTasksReturn {
@@ -77,6 +78,7 @@ export function useTasks(targetDateStr?: string): UseTasksReturn {
         color: input.color,
         icon: input.icon,
         scheduledDate: input.scheduledDate,
+        isTemplate: input.isTemplate,
       };
 
       persistTasks([newTask, ...tasks]);

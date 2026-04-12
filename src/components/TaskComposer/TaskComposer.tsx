@@ -8,7 +8,7 @@ import {
   BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Check, Clock, Zap, Repeat, Palette, Play, Square } from 'lucide-react-native';
+import { Bookmark, Check, Calendar, Clock, Zap, Repeat, Palette, Play, Square } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import { colors, palette } from '../../types/theme';
@@ -17,7 +17,7 @@ import { ICON_REGISTRY, ICON_NAMES } from '../../utils';
 import { styles, COMPOSER_CONSTANTS } from './styles';
 
 type RecurrenceOption = 'none' | 'daily' | 'weekly';
-type ActiveTool = 'time' | 'energy' | 'recurrence' | 'style' | null;
+type ActiveTool = 'time' | 'energy' | 'recurrence' | 'style' | 'date' | null;
 type ActivePicker = 'start' | 'end' | null;
 
 interface RecurrenceBadge {
@@ -38,6 +38,7 @@ interface TaskComposerProps {
     color?: string;
     icon?: string;
     scheduledDate?: string;
+    isTemplate?: boolean;
   }) => void;
   onUpdateTask?: (id: string, updates: Partial<Task>) => void;
   onDismiss?: () => void;
@@ -72,6 +73,9 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
     const [energyLevel, setEnergyLevel] = useState<EnergyLevel | null>(null);
     const [selectedColor, setSelectedColor] = useState<string | null>(null);
     const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
+    const [composerDate, setComposerDate] = useState<Date | null>(null);
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [isTemplate, setIsTemplate] = useState(false);
 
     const snapPoints = useMemo(() => COMPOSER_CONSTANTS.snapPoints, []);
 
@@ -88,6 +92,17 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
         setEnergyLevel(taskToEdit.energyLevel ?? null);
         setSelectedColor(taskToEdit.color ?? null);
         setSelectedIcon(taskToEdit.icon ?? null);
+        setIsTemplate(taskToEdit.isTemplate ?? false);
+
+        if (taskToEdit.scheduledDate) {
+          const [y, m, d] = taskToEdit.scheduledDate.split('-').map(Number);
+          setComposerDate(new Date(y, m - 1, d));
+        } else if (selectedDateStr) {
+          const [y, m, d] = selectedDateStr.split('-').map(Number);
+          setComposerDate(new Date(y, m - 1, d));
+        } else {
+          setComposerDate(null);
+        }
 
         // Parse startTime into startDate
         if (taskToEdit.startTime) {
@@ -110,7 +125,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
           setRecurrence('none');
         }
       }
-    }, [taskToEdit]);
+    }, [taskToEdit, selectedDateStr]);
 
     // Pre-fill state when spawning from a template (backlog task)
     useEffect(() => {
@@ -120,6 +135,17 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
         setEnergyLevel(templateTask.energyLevel ?? null);
         setSelectedColor(templateTask.color ?? null);
         setSelectedIcon(templateTask.icon ?? null);
+        setIsTemplate(false); // Spawned tasks are not templates
+
+        if (templateTask.scheduledDate) {
+          const [y, m, d] = templateTask.scheduledDate.split('-').map(Number);
+          setComposerDate(new Date(y, m - 1, d));
+        } else if (selectedDateStr) {
+          const [y, m, d] = selectedDateStr.split('-').map(Number);
+          setComposerDate(new Date(y, m - 1, d));
+        } else {
+          setComposerDate(null);
+        }
 
         // Parse startTime into startDate
         if (templateTask.startTime) {
@@ -142,7 +168,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
           setRecurrence('none');
         }
       }
-    }, [templateTask]);
+    }, [templateTask, selectedDateStr]);
 
     const resetState = useCallback(() => {
       setTitle('');
@@ -154,6 +180,9 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
       setEnergyLevel(null);
       setSelectedColor(null);
       setSelectedIcon(null);
+      setComposerDate(null);
+      setShowDatePicker(false);
+      setIsTemplate(false);
     }, []);
 
     const handleToolPress = useCallback((tool: ActiveTool) => {
@@ -187,6 +216,22 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
       return `${hours}:${minutes}`;
     }, []);
 
+    // Format Date to "YYYY-MM-DD" string
+    const formatDate = useCallback((date: Date): string => {
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }, []);
+
+    const handleDateChange = useCallback((event: DateTimePickerEvent, selectedDate?: Date) => {
+      if (Platform.OS === 'android') setShowDatePicker(false);
+      if (event.type === 'dismissed') return;
+      if (selectedDate) {
+        setComposerDate(selectedDate);
+      }
+    }, []);
+
     const handleSave = useCallback(() => {
       const trimmedTitle = title.trim();
       if (!trimmedTitle) return;
@@ -199,6 +244,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
       }
 
       const startTimeStr = formatTime(startDate);
+      const finalDate = composerDate ? formatDate(composerDate) : selectedDateStr;
 
       if (taskToEdit && onUpdateTask) {
         // Update existing task
@@ -210,6 +256,8 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
           energyLevel: energyLevel ?? undefined,
           color: selectedColor ?? undefined,
           icon: selectedIcon ?? undefined,
+          scheduledDate: finalDate,
+          isTemplate: isTemplate || undefined,
         });
       } else {
         // Create new task (from scratch or from template)
@@ -221,7 +269,8 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
           energyLevel: energyLevel ?? undefined,
           color: selectedColor ?? undefined,
           icon: selectedIcon ?? undefined,
-          scheduledDate: selectedDateStr,
+          scheduledDate: finalDate,
+          isTemplate: isTemplate || undefined,
         });
       }
 
@@ -229,7 +278,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
       resetState();
       Keyboard.dismiss();
       (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss();
-    }, [title, recurrence, startDate, formatTime, durationMinutes, energyLevel, selectedColor, selectedIcon, selectedDateStr, taskToEdit, onAddTask, onUpdateTask, resetState, ref]);
+    }, [title, recurrence, startDate, formatTime, formatDate, durationMinutes, energyLevel, selectedColor, selectedIcon, composerDate, selectedDateStr, isTemplate, taskToEdit, templateTask, onAddTask, onUpdateTask, resetState, ref]);
 
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -312,6 +361,28 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
             <Palette
               size={20}
               color={activeTool === 'style' || selectedColor || selectedIcon ? colors.accent : colors.textMuted}
+            />
+          </Pressable>
+          <Pressable
+            style={[styles.toolButton, activeTool === 'date' && styles.toolButtonActive]}
+            onPress={() => handleToolPress('date')}
+          >
+            <Calendar
+              size={20}
+              color={activeTool === 'date' || composerDate ? colors.accent : colors.textMuted}
+            />
+          </Pressable>
+          <Pressable
+            style={[styles.toolButton, isTemplate && styles.toolButtonActive]}
+            onPress={() => {
+              setIsTemplate((prev) => !prev);
+              Haptics.selectionAsync();
+            }}
+          >
+            <Bookmark
+              size={20}
+              color={isTemplate ? colors.accent : colors.textMuted}
+              fill={isTemplate ? colors.accent : 'transparent'}
             />
           </Pressable>
         </View>
@@ -485,6 +556,62 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
                 );
               })}
             </View>
+          </View>
+        )}
+
+        {activeTool === 'date' && (
+          <View style={styles.controlArea}>
+            <View style={styles.dateRow}>
+              <Pressable
+                style={[styles.dateSelectButton, composerDate && styles.dateSelectButtonActive]}
+                onPress={() => setShowDatePicker(!showDatePicker)}
+              >
+                <Calendar size={16} color={composerDate ? colors.accent : colors.textMuted} />
+                <Text style={[styles.dateSelectText, composerDate && styles.dateSelectTextActive]}>
+                  {composerDate ? formatDate(composerDate) : 'Select Date'}
+                </Text>
+              </Pressable>
+              {composerDate && (
+                <Pressable
+                  style={styles.dateClearButton}
+                  onPress={() => { setComposerDate(null); setShowDatePicker(false); }}
+                >
+                  <Text style={styles.dateClearText}>Clear</Text>
+                </Pressable>
+              )}
+            </View>
+            <Pressable
+              style={[styles.templateToggle, isTemplate && styles.templateToggleActive]}
+              onPress={() => setIsTemplate(!isTemplate)}
+            >
+              <Text style={[styles.templateToggleText, isTemplate && styles.templateToggleTextActive]}>
+                Reusable Template
+              </Text>
+            </Pressable>
+            {Platform.OS === 'ios' && showDatePicker && (
+              <>
+                <View style={styles.pickerContainer}>
+                  <DateTimePicker
+                    value={composerDate ?? new Date()}
+                    mode="date"
+                    display="inline"
+                    onChange={handleDateChange}
+                    themeVariant="dark"
+                  />
+                </View>
+                <Pressable style={styles.pickerDoneButton} onPress={() => setShowDatePicker(false)}>
+                  <Text style={styles.pickerDoneText}>Done</Text>
+                </Pressable>
+              </>
+            )}
+            {Platform.OS === 'android' && showDatePicker && (
+              <DateTimePicker
+                value={composerDate ?? new Date()}
+                mode="date"
+                display="default"
+                onChange={handleDateChange}
+              />
+            )}
           </View>
         )}
 

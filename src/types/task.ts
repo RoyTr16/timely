@@ -50,4 +50,5 @@ export interface Task {
   icon?: string; // Explicit icon override
   scheduledDate?: string; // YYYY-MM-DD format
   sortOrder?: number; // For backlog drag-and-drop ordering
+  isTemplate?: boolean; // Reusable template vs one-time inbox item
 }

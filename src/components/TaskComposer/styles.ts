@@ -119,6 +119,60 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.xs,
   },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  dateSelectButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+    backgroundColor: colors.surfaceElevated,
+  },
+  dateSelectButtonActive: {
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  dateSelectText: {
+    fontSize: typography.sizes.base,
+    color: colors.textMuted,
+  },
+  dateSelectTextActive: {
+    color: colors.textPrimary,
+    fontWeight: typography.weights.medium,
+  },
+  dateClearButton: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  dateClearText: {
+    fontSize: typography.sizes.sm,
+    color: colors.danger,
+  },
+  templateToggle: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.full,
+    backgroundColor: colors.surfaceElevated,
+  },
+  templateToggleActive: {
+    backgroundColor: colors.accent,
+  },
+  templateToggleText: {
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
+  },
+  templateToggleTextActive: {
+    color: colors.textPrimary,
+    fontWeight: typography.weights.medium,
+  },
   swatchRow: {
     flexDirection: 'row',
     gap: spacing.xs,

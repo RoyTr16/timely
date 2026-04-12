@@ -8,7 +8,7 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { Repeat, Trash2, Zap } from 'lucide-react-native';
+import { Bookmark, GripVertical, Repeat, Trash2, Zap } from 'lucide-react-native';
 
 import { colors, timing } from '../../types/theme';
 import type { Task } from '../../types/task';
@@ -24,6 +24,7 @@ interface TaskRowProps {
   onDelete: (id: string) => void;
   onPress: (task: Task) => void;
   onLongPress?: () => void;
+  isBacklogContext?: boolean;
   isProportional?: boolean;
   previousTaskEndTime?: string;
 }
@@ -33,7 +34,7 @@ const PIXELS_PER_MINUTE = 1.2;
 const MIN_HEIGHT = 64; // Floor for proportional scaling; content can grow beyond
 const MAX_GAP_PIXELS = 120;
 
-export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, isProportional = false, previousTaskEndTime }: TaskRowProps) {
+export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, isBacklogContext = false, isProportional = false, previousTaskEndTime }: TaskRowProps) {
   const { categories } = useCategories();
   const { color: resolvedColor, icon: resolvedIcon } = resolveTaskStyle(task, categories);
   const IconComponent = resolvedIcon ? ICON_REGISTRY[resolvedIcon] : null;
@@ -151,7 +152,11 @@ export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, isProp
             ]}
           >
           <View style={styles.timelineContainer}>
-            <Checkbox isChecked={task.isCompleted} onToggle={handleToggle} color={resolvedColor} />
+            {isBacklogContext ? (
+              <GripVertical size={TASKROW_CONSTANTS.taskIconSize} color={colors.textMuted} />
+            ) : (
+              <Checkbox isChecked={task.isCompleted} onToggle={handleToggle} color={resolvedColor} />
+            )}
           </View>
           <View style={styles.contentWrapper}>
             <Animated.View style={styles.content}>
@@ -185,6 +190,15 @@ export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, isProp
                 size={TASKROW_CONSTANTS.energyIconSize}
                 color={getEnergyColor(task.energyLevel)}
                 fill={getEnergyColor(task.energyLevel)}
+              />
+            </View>
+          )}
+          {isBacklogContext && task.isTemplate && (
+            <View style={styles.templateIndicator}>
+              <Bookmark
+                size={TASKROW_CONSTANTS.energyIconSize}
+                color={colors.accent}
+                fill={colors.accent}
               />
             </View>
           )}
