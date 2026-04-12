@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useState, useMemo, useEffect } from 'react';
-import { View, Text, Pressable, Keyboard, TextInput } from 'react-native';
+import { View, Text, Pressable, Keyboard, TextInput, ScrollView } from 'react-native';
 
 import {
   BottomSheetModal,
@@ -7,14 +7,14 @@ import {
   BottomSheetView,
   BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet';
-import { Check, Clock, Zap, Repeat } from 'lucide-react-native';
+import { Check, Clock, Zap, Repeat, Palette } from 'lucide-react-native';
 
-import { colors } from '../../types/theme';
+import { colors, palette } from '../../types/theme';
 import type { Task, RecurrenceRule, EnergyLevel } from '../../types/task';
 import { styles, COMPOSER_CONSTANTS } from './styles';
 
 type RecurrenceOption = 'none' | 'daily' | 'weekly';
-type ActiveTool = 'time' | 'energy' | 'recurrence' | null;
+type ActiveTool = 'time' | 'energy' | 'recurrence' | 'style' | null;
 
 interface RecurrenceBadge {
   key: RecurrenceOption;
@@ -29,6 +29,8 @@ interface TaskComposerProps {
     startTime?: string;
     durationMinutes?: number;
     energyLevel?: EnergyLevel;
+    color?: string;
+    icon?: string;
   }) => void;
   onUpdateTask?: (id: string, updates: Partial<Task>) => void;
   onDismiss?: () => void;
@@ -52,6 +54,11 @@ const ENERGY_OPTIONS: { value: EnergyLevel; label: string }[] = [
   { value: 3, label: '⚡⚡⚡ High' },
 ];
 
+const ICON_OPTIONS = [
+  'Code', 'Book', 'Coffee', 'Dumbbell', 'Gamepad2',
+  'Music', 'Camera', 'Heart', 'Star', 'Briefcase',
+];
+
 export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
   ({ taskToEdit, onAddTask, onUpdateTask, onDismiss }, ref) => {
     const [title, setTitle] = useState('');
@@ -60,6 +67,8 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
     const [startTime, setStartTime] = useState('');
     const [durationMinutes, setDurationMinutes] = useState<number | null>(null);
     const [energyLevel, setEnergyLevel] = useState<EnergyLevel | null>(null);
+    const [selectedColor, setSelectedColor] = useState<string | null>(null);
+    const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
 
     const snapPoints = useMemo(() => COMPOSER_CONSTANTS.snapPoints, []);
 
@@ -70,6 +79,8 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
         setStartTime(taskToEdit.startTime ?? '');
         setDurationMinutes(taskToEdit.durationMinutes ?? null);
         setEnergyLevel(taskToEdit.energyLevel ?? null);
+        setSelectedColor(taskToEdit.color ?? null);
+        setSelectedIcon(taskToEdit.icon ?? null);
 
         // Determine recurrence option
         if (!taskToEdit.recurrence) {
@@ -91,6 +102,8 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
       setStartTime('');
       setDurationMinutes(null);
       setEnergyLevel(null);
+      setSelectedColor(null);
+      setSelectedIcon(null);
     }, []);
 
     const handleToolPress = useCallback((tool: ActiveTool) => {
@@ -116,6 +129,8 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
           startTime: startTime || undefined,
           durationMinutes: durationMinutes ?? undefined,
           energyLevel: energyLevel ?? undefined,
+          color: selectedColor ?? undefined,
+          icon: selectedIcon ?? undefined,
         });
       } else {
         // Create new task
@@ -125,6 +140,8 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
           startTime: startTime || undefined,
           durationMinutes: durationMinutes ?? undefined,
           energyLevel: energyLevel ?? undefined,
+          color: selectedColor ?? undefined,
+          icon: selectedIcon ?? undefined,
         });
       }
 
@@ -132,7 +149,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
       resetState();
       Keyboard.dismiss();
       (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss();
-    }, [title, recurrence, startTime, durationMinutes, energyLevel, taskToEdit, onAddTask, onUpdateTask, resetState, ref]);
+    }, [title, recurrence, startTime, durationMinutes, energyLevel, selectedColor, selectedIcon, taskToEdit, onAddTask, onUpdateTask, resetState, ref]);
 
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -206,6 +223,15 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
             <Repeat
               size={20}
               color={activeTool === 'recurrence' || recurrence !== 'none' ? colors.accent : colors.textMuted}
+            />
+          </Pressable>
+          <Pressable
+            style={[styles.toolButton, activeTool === 'style' && styles.toolButtonActive]}
+            onPress={() => handleToolPress('style')}
+          >
+            <Palette
+              size={20}
+              color={activeTool === 'style' || selectedColor || selectedIcon ? colors.accent : colors.textMuted}
             />
           </Pressable>
         </View>
@@ -297,6 +323,53 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
                 </Pressable>
               ))}
             </View>
+          </View>
+        )}
+
+        {activeTool === 'style' && (
+          <View style={styles.controlArea}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.swatchRow}
+            >
+              {palette.map((color) => (
+                <Pressable
+                  key={color}
+                  style={[
+                    styles.colorSwatch,
+                    { backgroundColor: color },
+                    selectedColor === color && styles.colorSwatchActive,
+                  ]}
+                  onPress={() => setSelectedColor(selectedColor === color ? null : color)}
+                />
+              ))}
+            </ScrollView>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.iconRow}
+            >
+              {ICON_OPTIONS.map((iconName) => (
+                <Pressable
+                  key={iconName}
+                  style={[
+                    styles.iconBadge,
+                    selectedIcon === iconName && styles.iconBadgeActive,
+                  ]}
+                  onPress={() => setSelectedIcon(selectedIcon === iconName ? null : iconName)}
+                >
+                  <Text
+                    style={[
+                      styles.iconBadgeText,
+                      selectedIcon === iconName && styles.iconBadgeTextActive,
+                    ]}
+                  >
+                    {iconName}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
           </View>
         )}
 

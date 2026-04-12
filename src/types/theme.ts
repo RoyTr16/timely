@@ -48,6 +48,20 @@ export const colors = {
 } as const;
 
 /**
+ * Curated dark-mode friendly color palette for categories and tasks
+ */
+export const palette = [
+  '#6366F1', // Indigo
+  '#10B981', // Emerald
+  '#F43F5E', // Rose
+  '#F59E0B', // Amber
+  '#06B6D4', // Cyan
+  '#8B5CF6', // Purple
+  '#EC4899', // Pink
+  '#14B8A6', // Teal
+] as const;
+
+/**
  * Typography scale using consistent sizing
  */
 export const typography = {

@@ -13,6 +13,8 @@ interface NewTaskInput {
   startTime?: string;
   durationMinutes?: number;
   energyLevel?: EnergyLevel;
+  color?: string;
+  icon?: string;
 }
 
 interface UseTasksReturn {
@@ -69,6 +71,8 @@ export function useTasks(): UseTasksReturn {
         startTime: input.startTime,
         durationMinutes: input.durationMinutes,
         energyLevel: input.energyLevel,
+        color: input.color,
+        icon: input.icon,
       };
 
       persistTasks([newTask, ...tasks]);

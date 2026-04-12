@@ -24,6 +24,16 @@ export type RecurrenceRule =
 export type EnergyLevel = 1 | 2 | 3;
 
 /**
+ * Category for grouping related tasks with shared styling.
+ */
+export interface Category {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+}
+
+/**
  * Core Task entity stored in MMKV.
  */
 export interface Task {
@@ -36,4 +46,6 @@ export interface Task {
   startTime?: string; // HH:mm format
   durationMinutes?: number;
   energyLevel?: EnergyLevel;
+  color?: string; // Explicit color override
+  icon?: string; // Explicit icon override
 }

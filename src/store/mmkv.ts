@@ -15,6 +15,7 @@ export const storage = AsyncStorage;
  */
 export const StorageKeys = {
   TASKS: 'tasks',
+  CATEGORIES: 'categories',
   SETTINGS: 'settings',
 } as const;
 

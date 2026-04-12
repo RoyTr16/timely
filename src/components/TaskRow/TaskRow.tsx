@@ -8,12 +8,43 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { Repeat, Trash2, Zap } from 'lucide-react-native';
+import {
+  Repeat,
+  Trash2,
+  Zap,
+  Code,
+  Book,
+  Coffee,
+  Dumbbell,
+  Gamepad2,
+  Music,
+  Camera,
+  Heart,
+  Star,
+  Briefcase,
+  type LucideIcon,
+} from 'lucide-react-native';
 
 import { colors, timing } from '../../types/theme';
 import type { Task } from '../../types/task';
+import { useCategories } from '../../hooks';
+import { resolveTaskStyle } from '../../utils';
 import { Checkbox } from '../Checkbox';
 import { styles, TASKROW_CONSTANTS, getEnergyColor } from './styles';
+
+// Map icon names to components
+const ICON_MAP: Record<string, LucideIcon> = {
+  Code,
+  Book,
+  Coffee,
+  Dumbbell,
+  Gamepad2,
+  Music,
+  Camera,
+  Heart,
+  Star,
+  Briefcase,
+};
 
 interface TaskRowProps {
   task: Task;
@@ -23,6 +54,10 @@ interface TaskRowProps {
 }
 
 export function TaskRow({ task, onToggle, onDelete, onPress }: TaskRowProps) {
+  const { categories } = useCategories();
+  const { color: resolvedColor, icon: resolvedIcon } = resolveTaskStyle(task, categories);
+  const IconComponent = resolvedIcon ? ICON_MAP[resolvedIcon] : null;
+
   const completionProgress = useSharedValue(task.isCompleted ? 1 : 0);
 
   useEffect(() => {
@@ -92,10 +127,17 @@ export function TaskRow({ task, onToggle, onDelete, onPress }: TaskRowProps) {
           ]}
         >
           <View style={styles.timelineContainer}>
-            <Checkbox isChecked={task.isCompleted} onToggle={handleToggle} />
+            <Checkbox isChecked={task.isCompleted} onToggle={handleToggle} color={resolvedColor} />
           </View>
           <View style={styles.contentWrapper}>
             <Animated.View style={styles.content}>
+              {IconComponent && (
+                <IconComponent
+                  size={TASKROW_CONSTANTS.taskIconSize}
+                  color={resolvedColor}
+                  style={styles.taskIcon}
+                />
+              )}
               <View style={styles.titleContainer}>
                 <Animated.Text style={[styles.title, titleAnimatedStyle]}>
                   {task.title}

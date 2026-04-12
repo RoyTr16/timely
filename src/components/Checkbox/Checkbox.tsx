@@ -19,11 +19,13 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 interface CheckboxProps {
   isChecked: boolean;
   onToggle: () => void;
+  color?: string;
 }
 
-export function Checkbox({ isChecked, onToggle }: CheckboxProps) {
+export function Checkbox({ isChecked, onToggle, color }: CheckboxProps) {
   const scale = useSharedValue(1);
   const progress = useSharedValue(isChecked ? 1 : 0);
+  const checkedColor = color ?? CHECKBOX_CONSTANTS.checkedBackground;
 
   // Sync progress with isChecked prop changes
   useEffect(() => {
@@ -48,12 +50,12 @@ export function Checkbox({ isChecked, onToggle }: CheckboxProps) {
     backgroundColor: interpolateColor(
       progress.value,
       [0, 1],
-      [CHECKBOX_CONSTANTS.uncheckedBackground, CHECKBOX_CONSTANTS.checkedBackground]
+      [CHECKBOX_CONSTANTS.uncheckedBackground, checkedColor]
     ),
     borderColor: interpolateColor(
       progress.value,
       [0, 1],
-      [CHECKBOX_CONSTANTS.uncheckedBorder, CHECKBOX_CONSTANTS.checkedBorder]
+      [CHECKBOX_CONSTANTS.uncheckedBorder, checkedColor]
     ),
   }));
 

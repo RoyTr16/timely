@@ -57,6 +57,9 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
   },
+  taskIcon: {
+    marginRight: spacing.xs / 2,
+  },
   titleContainer: {
     flex: 1,
   },
@@ -87,6 +90,7 @@ export const styles = StyleSheet.create({
 export const TASKROW_CONSTANTS = {
   recurrenceIconSize: 14,
   energyIconSize: 14,
+  taskIconSize: 16,
   activeOpacity: 0.7,
   deleteIconSize: 24,
   swipeThreshold: 80,
