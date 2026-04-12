@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTasks } from '../../hooks/useTasks';
 import { TaskRow, TaskComposer } from '../../components';
 import type { Task } from '../../types/task';
-import { styles } from './_styles';
+import { styles } from '../../styles/tabs';
 
 export default function BacklogScreen() {
   const { backlogTasks, addTask, updateTask, toggleTask, deleteTask } = useTasks();

@@ -10,7 +10,7 @@ import { useTasks } from '../../hooks/useTasks';
 import { TaskRow, TaskComposer } from '../../components';
 import { colors } from '../../types/theme';
 import type { Task } from '../../types/task';
-import { styles } from './_styles';
+import { styles } from '../../styles/tabs';
 
 export default function TimelineScreen() {
   const { todayTasks, addTask, updateTask, toggleTask, deleteTask } = useTasks();

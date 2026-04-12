@@ -2,18 +2,18 @@ import { StyleSheet } from 'react-native';
 
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { colors } from '../types/theme';
+import { glass } from '../types/theme';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
-  content: {
-    backgroundColor: colors.background,
+  gradient: {
+    flex: 1,
   },
 });
 
@@ -22,13 +22,18 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.container}>
       <SafeAreaProvider>
         <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: styles.content,
-            animation: 'fade',
-          }}
-        />
+        <LinearGradient
+          colors={glass.backgroundGradient}
+          style={styles.gradient}
+        >
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: 'transparent' },
+              animation: 'fade',
+            }}
+          />
+        </LinearGradient>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

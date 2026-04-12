@@ -90,6 +90,18 @@ export const timing = {
   slow: 400,
 } as const;
 
+/**
+ * Glassmorphism tokens for 3D aesthetic
+ */
+export const glass = {
+  blurIntensity: {
+    subtle: 20,
+    heavy: 50,
+  },
+  borderGradient: ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.02)'] as const,
+  backgroundGradient: ['#1A1A24', '#000000'] as const,
+} as const;
+
 export type Spacing = keyof typeof spacing;
 export type Radii = keyof typeof radii;
 export type Colors = keyof typeof colors;

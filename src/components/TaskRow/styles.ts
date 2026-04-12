@@ -21,28 +21,26 @@ const TIMELINE_LINE_WIDTH = 2;
 
 export const styles = StyleSheet.create({
   swipeableContainer: {
-    paddingBottom: spacing.sm, // Internal padding for visual spacing
+    paddingBottom: spacing.sm, // 16px gap between cards
   },
-  timelineLine: {
+  gapConnector: {
     position: 'absolute',
-    left: spacing.xs + (TIMELINE_WIDTH + spacing.xs) / 2 - TIMELINE_LINE_WIDTH / 2, // Center under checkbox
-    top: 0,
     bottom: 0,
+    left: 27, // GlassCard padding (16) + checkbox center (24/2) - line center (1)
+    height: spacing.sm, // Exactly fills the 16px gap
     width: TIMELINE_LINE_WIDTH,
-    backgroundColor: colors.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Frosted white
     zIndex: -1,
   },
   cardWrapper: {
-    backgroundColor: colors.background,
-    borderRadius: radii.md,
+    // Deprecated: GlassCard handles the card container
   },
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     paddingRight: spacing.sm,
     paddingLeft: spacing.xs,
-    borderRadius: radii.md, // 16px for immersive card
     gap: spacing.xs,
   },
   timelineContainer: {

@@ -15,6 +15,7 @@ import type { Task } from '../../types/task';
 import { useCategories } from '../../hooks';
 import { resolveTaskStyle, ICON_REGISTRY } from '../../utils';
 import { Checkbox } from '../Checkbox';
+import { GlassCard } from '../GlassCard';
 import { styles, TASKROW_CONSTANTS, getEnergyColor } from './styles';
 
 interface TaskRowProps {
@@ -28,9 +29,6 @@ export function TaskRow({ task, onToggle, onDelete, onPress }: TaskRowProps) {
   const { categories } = useCategories();
   const { color: resolvedColor, icon: resolvedIcon } = resolveTaskStyle(task, categories);
   const IconComponent = resolvedIcon ? ICON_REGISTRY[resolvedIcon] : null;
-
-  // Create tinted background with 25% opacity (hex 40)
-  const tintedBackground = `${resolvedColor}40`;
 
   const completionProgress = useSharedValue(task.isCompleted ? 1 : 0);
 
@@ -86,19 +84,18 @@ export function TaskRow({ task, onToggle, onDelete, onPress }: TaskRowProps) {
 
   return (
     <View style={styles.swipeableContainer}>
-      <View style={styles.timelineLine} />
+      <View style={styles.gapConnector} />
       <ReanimatedSwipeable
         friction={2}
         rightThreshold={TASKROW_CONSTANTS.swipeThreshold}
         renderRightActions={renderRightActions}
         onSwipeableWillOpen={handleDelete}
       >
-        <View style={styles.cardWrapper}>
+        <GlassCard tintColor={resolvedColor}>
           <Pressable
             onPress={handlePress}
             style={({ pressed }) => [
               styles.container,
-              { backgroundColor: tintedBackground },
               pressed && { opacity: TASKROW_CONSTANTS.activeOpacity },
             ]}
           >
@@ -141,7 +138,7 @@ export function TaskRow({ task, onToggle, onDelete, onPress }: TaskRowProps) {
             </View>
           )}
         </Pressable>
-        </View>
+        </GlassCard>
       </ReanimatedSwipeable>
     </View>
   );
