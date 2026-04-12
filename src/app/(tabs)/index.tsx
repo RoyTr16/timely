@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { View, Text, Pressable } from 'react-native';
 
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
@@ -13,18 +13,34 @@ import type { Task } from '../../types/task';
 import { styles } from './_styles';
 
 export default function TimelineScreen() {
-  const { todayTasks, addTask, toggleTask, deleteTask } = useTasks();
+  const { todayTasks, addTask, updateTask, toggleTask, deleteTask } = useTasks();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const handleOpenComposer = useCallback(() => {
+    setSelectedTask(null);
     bottomSheetRef.current?.present();
+  }, []);
+
+  const handleTaskPress = useCallback((task: Task) => {
+    setSelectedTask(task);
+    bottomSheetRef.current?.present();
+  }, []);
+
+  const handleDismiss = useCallback(() => {
+    setSelectedTask(null);
   }, []);
 
   const renderItem = useCallback(
     ({ item }: { item: Task }) => (
-      <TaskRow task={item} onToggle={toggleTask} onDelete={deleteTask} />
+      <TaskRow
+        task={item}
+        onToggle={toggleTask}
+        onDelete={deleteTask}
+        onPress={handleTaskPress}
+      />
     ),
-    [toggleTask, deleteTask]
+    [toggleTask, deleteTask, handleTaskPress]
   );
 
   const keyExtractor = useCallback((item: Task) => item.id, []);
@@ -65,7 +81,13 @@ export default function TimelineScreen() {
           <Plus size={24} color={colors.textPrimary} />
         </Pressable>
 
-        <TaskComposer ref={bottomSheetRef} onAddTask={addTask} />
+        <TaskComposer
+          ref={bottomSheetRef}
+          taskToEdit={selectedTask}
+          onAddTask={addTask}
+          onUpdateTask={updateTask}
+          onDismiss={handleDismiss}
+        />
       </SafeAreaView>
     </BottomSheetModalProvider>
   );

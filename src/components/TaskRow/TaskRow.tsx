@@ -19,9 +19,10 @@ interface TaskRowProps {
   task: Task;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onPress: (task: Task) => void;
 }
 
-export function TaskRow({ task, onToggle, onDelete }: TaskRowProps) {
+export function TaskRow({ task, onToggle, onDelete, onPress }: TaskRowProps) {
   const completionProgress = useSharedValue(task.isCompleted ? 1 : 0);
 
   useEffect(() => {
@@ -37,6 +38,10 @@ export function TaskRow({ task, onToggle, onDelete }: TaskRowProps) {
   const handleDelete = useCallback(() => {
     onDelete(task.id);
   }, [onDelete, task.id]);
+
+  const handlePress = useCallback(() => {
+    onPress(task);
+  }, [onPress, task]);
 
   const titleAnimatedStyle = useAnimatedStyle(() => ({
     color: interpolateColor(
@@ -80,7 +85,7 @@ export function TaskRow({ task, onToggle, onDelete }: TaskRowProps) {
         onSwipeableWillOpen={handleDelete}
       >
         <Pressable
-          onPress={handleToggle}
+          onPress={handlePress}
           style={({ pressed }) => [
             styles.container,
             pressed && { opacity: TASKROW_CONSTANTS.activeOpacity },

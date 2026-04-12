@@ -20,6 +20,7 @@ interface UseTasksReturn {
   todayTasks: Task[];
   backlogTasks: Task[];
   addTask: (input: NewTaskInput) => void;
+  updateTask: (id: string, updates: Partial<Task>) => void;
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
 }
@@ -93,6 +94,16 @@ export function useTasks(): UseTasksReturn {
     [tasks, persistTasks]
   );
 
+  const updateTask = useCallback(
+    (id: string, updates: Partial<Task>) => {
+      const updatedTasks = tasks.map((task) =>
+        task.id === id ? { ...task, ...updates } : task
+      );
+      persistTasks(updatedTasks);
+    },
+    [tasks, persistTasks]
+  );
+
   // Derive tasks that are due today, sorted chronologically
   const todayTasks = useMemo(() => {
     const filtered = tasks.filter(isTaskDueToday);
@@ -117,6 +128,7 @@ export function useTasks(): UseTasksReturn {
     todayTasks,
     backlogTasks,
     addTask,
+    updateTask,
     toggleTask,
     deleteTask,
   };

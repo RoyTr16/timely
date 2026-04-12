@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useState, useMemo } from 'react';
+import { forwardRef, useCallback, useState, useMemo, useEffect } from 'react';
 import { View, Text, Pressable, Keyboard, TextInput } from 'react-native';
 
 import {
@@ -10,7 +10,7 @@ import {
 import { Check, Clock, Zap, Repeat } from 'lucide-react-native';
 
 import { colors } from '../../types/theme';
-import type { RecurrenceRule, EnergyLevel } from '../../types/task';
+import type { Task, RecurrenceRule, EnergyLevel } from '../../types/task';
 import { styles, COMPOSER_CONSTANTS } from './styles';
 
 type RecurrenceOption = 'none' | 'daily' | 'weekly';
@@ -22,6 +22,7 @@ interface RecurrenceBadge {
 }
 
 interface TaskComposerProps {
+  taskToEdit?: Task | null;
   onAddTask: (input: {
     title: string;
     recurrence?: RecurrenceRule;
@@ -29,6 +30,8 @@ interface TaskComposerProps {
     durationMinutes?: number;
     energyLevel?: EnergyLevel;
   }) => void;
+  onUpdateTask?: (id: string, updates: Partial<Task>) => void;
+  onDismiss?: () => void;
 }
 
 const RECURRENCE_OPTIONS: RecurrenceBadge[] = [
@@ -50,7 +53,7 @@ const ENERGY_OPTIONS: { value: EnergyLevel; label: string }[] = [
 ];
 
 export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
-  ({ onAddTask }, ref) => {
+  ({ taskToEdit, onAddTask, onUpdateTask, onDismiss }, ref) => {
     const [title, setTitle] = useState('');
     const [recurrence, setRecurrence] = useState<RecurrenceOption>('none');
     const [activeTool, setActiveTool] = useState<ActiveTool>(null);
@@ -59,6 +62,36 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
     const [energyLevel, setEnergyLevel] = useState<EnergyLevel | null>(null);
 
     const snapPoints = useMemo(() => COMPOSER_CONSTANTS.snapPoints, []);
+
+    // Pre-fill state when editing an existing task
+    useEffect(() => {
+      if (taskToEdit) {
+        setTitle(taskToEdit.title);
+        setStartTime(taskToEdit.startTime ?? '');
+        setDurationMinutes(taskToEdit.durationMinutes ?? null);
+        setEnergyLevel(taskToEdit.energyLevel ?? null);
+
+        // Determine recurrence option
+        if (!taskToEdit.recurrence) {
+          setRecurrence('none');
+        } else if (taskToEdit.recurrence.type === 'daily') {
+          setRecurrence('daily');
+        } else if (taskToEdit.recurrence.type === 'weekly') {
+          setRecurrence('weekly');
+        } else {
+          setRecurrence('none');
+        }
+      }
+    }, [taskToEdit]);
+
+    const resetState = useCallback(() => {
+      setTitle('');
+      setRecurrence('none');
+      setActiveTool(null);
+      setStartTime('');
+      setDurationMinutes(null);
+      setEnergyLevel(null);
+    }, []);
 
     const handleToolPress = useCallback((tool: ActiveTool) => {
       setActiveTool((prev) => (prev === tool ? null : tool));
@@ -75,24 +108,31 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
         recurrenceRule = { type: 'weekly' };
       }
 
-      onAddTask({
-        title: trimmedTitle,
-        recurrence: recurrenceRule,
-        startTime: startTime || undefined,
-        durationMinutes: durationMinutes ?? undefined,
-        energyLevel: energyLevel ?? undefined,
-      });
+      if (taskToEdit && onUpdateTask) {
+        // Update existing task
+        onUpdateTask(taskToEdit.id, {
+          title: trimmedTitle,
+          recurrence: recurrenceRule,
+          startTime: startTime || undefined,
+          durationMinutes: durationMinutes ?? undefined,
+          energyLevel: energyLevel ?? undefined,
+        });
+      } else {
+        // Create new task
+        onAddTask({
+          title: trimmedTitle,
+          recurrence: recurrenceRule,
+          startTime: startTime || undefined,
+          durationMinutes: durationMinutes ?? undefined,
+          energyLevel: energyLevel ?? undefined,
+        });
+      }
 
       // Reset and close
-      setTitle('');
-      setRecurrence('none');
-      setActiveTool(null);
-      setStartTime('');
-      setDurationMinutes(null);
-      setEnergyLevel(null);
+      resetState();
       Keyboard.dismiss();
       (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss();
-    }, [title, recurrence, startTime, durationMinutes, energyLevel, onAddTask, ref]);
+    }, [title, recurrence, startTime, durationMinutes, energyLevel, taskToEdit, onAddTask, onUpdateTask, resetState, ref]);
 
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -106,6 +146,11 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
     []
   );
 
+  const handleSheetDismiss = useCallback(() => {
+    resetState();
+    onDismiss?.();
+  }, [resetState, onDismiss]);
+
   const isDisabled = !title.trim();
 
   return (
@@ -118,6 +163,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
       handleIndicatorStyle={styles.handleIndicator}
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
+      onDismiss={handleSheetDismiss}
     >
       <BottomSheetView style={styles.container}>
         <View style={styles.inputContainer}>
