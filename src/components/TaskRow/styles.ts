@@ -32,14 +32,17 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.border,
     zIndex: -1,
   },
+  cardWrapper: {
+    backgroundColor: colors.background,
+    borderRadius: radii.md,
+  },
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.sm,
     paddingRight: spacing.sm,
     paddingLeft: spacing.xs,
-    backgroundColor: colors.surface,
-    borderRadius: radii.sm,
+    borderRadius: radii.md, // 16px for immersive card
     gap: spacing.xs,
   },
   timelineContainer: {

@@ -1,2 +1,3 @@
 export { isTaskDueToday, isTodayWeekday, getRecurrenceLabel } from './dateEngine';
 export { resolveTaskStyle } from './styleResolver';
+export { ICON_REGISTRY, ICON_NAMES, type IconName } from './iconRegistry';

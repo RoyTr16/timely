@@ -94,27 +94,24 @@ export const styles = StyleSheet.create({
   colorSwatchActive: {
     borderColor: colors.textPrimary,
   },
-  iconRow: {
+  iconGrid: {
     flexDirection: 'row',
-    gap: spacing.xs,
-    paddingTop: spacing.xs,
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
   },
-  iconBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.full,
+  iconGridItem: {
+    width: spacing.xxl,
+    height: spacing.xxl,
+    borderRadius: radii.sm,
     backgroundColor: colors.surfaceElevated,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  iconBadgeActive: {
-    backgroundColor: colors.accent,
-  },
-  iconBadgeText: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-  },
-  iconBadgeTextActive: {
-    color: colors.textPrimary,
-    fontWeight: typography.weights.medium,
+  iconGridItemActive: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.accent,
   },
   footer: {
     flexDirection: 'row',
@@ -144,6 +141,6 @@ export const styles = StyleSheet.create({
 });
 
 export const COMPOSER_CONSTANTS = {
-  snapPoints: ['60%'],
+  snapPoints: ['70%'],
   saveIconSize: 20,
 } as const;

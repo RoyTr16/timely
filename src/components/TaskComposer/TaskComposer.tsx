@@ -8,9 +8,11 @@ import {
   BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet';
 import { Check, Clock, Zap, Repeat, Palette } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 
 import { colors, palette } from '../../types/theme';
 import type { Task, RecurrenceRule, EnergyLevel } from '../../types/task';
+import { ICON_REGISTRY, ICON_NAMES } from '../../utils';
 import { styles, COMPOSER_CONSTANTS } from './styles';
 
 type RecurrenceOption = 'none' | 'daily' | 'weekly';
@@ -52,11 +54,6 @@ const ENERGY_OPTIONS: { value: EnergyLevel; label: string }[] = [
   { value: 1, label: '⚡ Low' },
   { value: 2, label: '⚡⚡ Med' },
   { value: 3, label: '⚡⚡⚡ High' },
-];
-
-const ICON_OPTIONS = [
-  'Code', 'Book', 'Coffee', 'Dumbbell', 'Gamepad2',
-  'Music', 'Camera', 'Heart', 'Star', 'Briefcase',
 ];
 
 export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
@@ -341,35 +338,37 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
                     { backgroundColor: color },
                     selectedColor === color && styles.colorSwatchActive,
                   ]}
-                  onPress={() => setSelectedColor(selectedColor === color ? null : color)}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setSelectedColor(selectedColor === color ? null : color);
+                  }}
                 />
               ))}
             </ScrollView>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.iconRow}
-            >
-              {ICON_OPTIONS.map((iconName) => (
-                <Pressable
-                  key={iconName}
-                  style={[
-                    styles.iconBadge,
-                    selectedIcon === iconName && styles.iconBadgeActive,
-                  ]}
-                  onPress={() => setSelectedIcon(selectedIcon === iconName ? null : iconName)}
-                >
-                  <Text
+            <View style={styles.iconGrid}>
+              {ICON_NAMES.map((iconName) => {
+                const IconComponent = ICON_REGISTRY[iconName];
+                const isSelected = selectedIcon === iconName;
+                const iconColor = isSelected
+                  ? selectedColor || colors.accent
+                  : colors.textMuted;
+                return (
+                  <Pressable
+                    key={iconName}
                     style={[
-                      styles.iconBadgeText,
-                      selectedIcon === iconName && styles.iconBadgeTextActive,
+                      styles.iconGridItem,
+                      isSelected && styles.iconGridItemActive,
                     ]}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setSelectedIcon(isSelected ? null : iconName);
+                    }}
                   >
-                    {iconName}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
+                    <IconComponent size={20} color={iconColor} />
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         )}
 

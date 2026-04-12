@@ -8,43 +8,14 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import {
-  Repeat,
-  Trash2,
-  Zap,
-  Code,
-  Book,
-  Coffee,
-  Dumbbell,
-  Gamepad2,
-  Music,
-  Camera,
-  Heart,
-  Star,
-  Briefcase,
-  type LucideIcon,
-} from 'lucide-react-native';
+import { Repeat, Trash2, Zap } from 'lucide-react-native';
 
 import { colors, timing } from '../../types/theme';
 import type { Task } from '../../types/task';
 import { useCategories } from '../../hooks';
-import { resolveTaskStyle } from '../../utils';
+import { resolveTaskStyle, ICON_REGISTRY } from '../../utils';
 import { Checkbox } from '../Checkbox';
 import { styles, TASKROW_CONSTANTS, getEnergyColor } from './styles';
-
-// Map icon names to components
-const ICON_MAP: Record<string, LucideIcon> = {
-  Code,
-  Book,
-  Coffee,
-  Dumbbell,
-  Gamepad2,
-  Music,
-  Camera,
-  Heart,
-  Star,
-  Briefcase,
-};
 
 interface TaskRowProps {
   task: Task;
@@ -56,7 +27,10 @@ interface TaskRowProps {
 export function TaskRow({ task, onToggle, onDelete, onPress }: TaskRowProps) {
   const { categories } = useCategories();
   const { color: resolvedColor, icon: resolvedIcon } = resolveTaskStyle(task, categories);
-  const IconComponent = resolvedIcon ? ICON_MAP[resolvedIcon] : null;
+  const IconComponent = resolvedIcon ? ICON_REGISTRY[resolvedIcon] : null;
+
+  // Create tinted background with 25% opacity (hex 40)
+  const tintedBackground = `${resolvedColor}40`;
 
   const completionProgress = useSharedValue(task.isCompleted ? 1 : 0);
 
@@ -119,13 +93,15 @@ export function TaskRow({ task, onToggle, onDelete, onPress }: TaskRowProps) {
         renderRightActions={renderRightActions}
         onSwipeableWillOpen={handleDelete}
       >
-        <Pressable
-          onPress={handlePress}
-          style={({ pressed }) => [
-            styles.container,
-            pressed && { opacity: TASKROW_CONSTANTS.activeOpacity },
-          ]}
-        >
+        <View style={styles.cardWrapper}>
+          <Pressable
+            onPress={handlePress}
+            style={({ pressed }) => [
+              styles.container,
+              { backgroundColor: tintedBackground },
+              pressed && { opacity: TASKROW_CONSTANTS.activeOpacity },
+            ]}
+          >
           <View style={styles.timelineContainer}>
             <Checkbox isChecked={task.isCompleted} onToggle={handleToggle} color={resolvedColor} />
           </View>
@@ -165,6 +141,7 @@ export function TaskRow({ task, onToggle, onDelete, onPress }: TaskRowProps) {
             </View>
           )}
         </Pressable>
+        </View>
       </ReanimatedSwipeable>
     </View>
   );
