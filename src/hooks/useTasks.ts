@@ -15,6 +15,7 @@ interface NewTaskInput {
 interface UseTasksReturn {
   tasks: Task[];
   todayTasks: Task[];
+  backlogTasks: Task[];
   addTask: (input: NewTaskInput) => void;
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
@@ -92,9 +93,16 @@ export function useTasks(): UseTasksReturn {
     [tasks]
   );
 
+  // Derive tasks NOT due today (backlog)
+  const backlogTasks = useMemo(
+    () => tasks.filter((task) => !isTaskDueToday(task)),
+    [tasks]
+  );
+
   return {
     tasks,
     todayTasks,
+    backlogTasks,
     addTask,
     toggleTask,
     deleteTask,
