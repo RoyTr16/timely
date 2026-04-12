@@ -13,7 +13,7 @@ import type { Task } from '../../types/task';
 import { styles } from './_styles';
 
 export default function TimelineScreen() {
-  const { tasks, addTask, toggleTask } = useTasks();
+  const { todayTasks, addTask, toggleTask, deleteTask } = useTasks();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
 
   const handleOpenComposer = useCallback(() => {
@@ -22,9 +22,9 @@ export default function TimelineScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: Task }) => (
-      <TaskRow task={item} onToggle={toggleTask} />
+      <TaskRow task={item} onToggle={toggleTask} onDelete={deleteTask} />
     ),
-    [toggleTask]
+    [toggleTask, deleteTask]
   );
 
   const keyExtractor = useCallback((item: Task) => item.id, []);
@@ -46,7 +46,7 @@ export default function TimelineScreen() {
         </View>
 
         <Animated.FlatList
-          data={tasks}
+          data={todayTasks}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.listContent}

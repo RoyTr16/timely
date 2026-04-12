@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { storage, StorageKeys } from '../store/mmkv';
+import { isTaskDueToday } from '../utils/dateEngine';
 import type { Task, RecurrenceRule } from '../types/task';
 
 const STORAGE_KEY = `app.${StorageKeys.TASKS}`;
@@ -13,6 +14,7 @@ interface NewTaskInput {
 
 interface UseTasksReturn {
   tasks: Task[];
+  todayTasks: Task[];
   addTask: (input: NewTaskInput) => void;
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
@@ -84,8 +86,15 @@ export function useTasks(): UseTasksReturn {
     [tasks, persistTasks]
   );
 
+  // Derive tasks that are due today
+  const todayTasks = useMemo(
+    () => tasks.filter(isTaskDueToday),
+    [tasks]
+  );
+
   return {
     tasks,
+    todayTasks,
     addTask,
     toggleTask,
     deleteTask,
