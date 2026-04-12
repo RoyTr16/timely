@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useMemo } from 'react';
 import { View, Text, Pressable } from 'react-native';
 
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
@@ -9,7 +9,7 @@ import { Plus } from 'lucide-react-native';
 import { useTasks } from '../../hooks/useTasks';
 import { TaskRow, TaskComposer, DaySelector } from '../../components';
 import { colors } from '../../types/theme';
-import { getFormattedDate } from '../../utils';
+import { getFormattedDate, getEndTime } from '../../utils';
 import type { Task } from '../../types/task';
 import { styles } from '../../styles/tabs';
 
@@ -18,6 +18,21 @@ export default function TimelineScreen() {
   const { timelineTasks, addTask, updateTask, toggleTask, deleteTask } = useTasks(activeDate);
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  // Split tasks into flexible (no startTime) and scheduled (with startTime)
+  const { flexibleTasks, scheduledTasks } = useMemo(() => {
+    const flexible: Task[] = [];
+    const scheduled: Task[] = [];
+    for (const task of timelineTasks) {
+      if (task.startTime) {
+        scheduled.push(task);
+      } else {
+        flexible.push(task);
+      }
+    }
+    // Scheduled tasks are already sorted by useTasks
+    return { flexibleTasks: flexible, scheduledTasks: scheduled };
+  }, [timelineTasks]);
 
   const handleOpenComposer = useCallback(() => {
     setSelectedTask(null);
@@ -34,26 +49,63 @@ export default function TimelineScreen() {
   }, []);
 
   const renderItem = useCallback(
-    ({ item }: { item: Task }) => (
-      <TaskRow
-        task={item}
-        onToggle={toggleTask}
-        onDelete={deleteTask}
-        onPress={handleTaskPress}
-      />
-    ),
-    [toggleTask, deleteTask, handleTaskPress]
+    ({ item, index }: { item: Task; index: number }) => {
+      // Calculate previous task's end time for proportional gaps
+      const prevTask = index > 0 ? scheduledTasks[index - 1] : null;
+      const previousTaskEndTime = prevTask?.startTime && prevTask?.durationMinutes
+        ? getEndTime(prevTask.startTime, prevTask.durationMinutes)
+        : undefined;
+
+      return (
+        <TaskRow
+          task={item}
+          onToggle={toggleTask}
+          onDelete={deleteTask}
+          onPress={handleTaskPress}
+          isProportional
+          previousTaskEndTime={previousTaskEndTime}
+        />
+      );
+    },
+    [scheduledTasks, toggleTask, deleteTask, handleTaskPress]
   );
 
   const keyExtractor = useCallback((item: Task) => item.id, []);
 
   const ListEmptyComponent = useCallback(
-    () => (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No tasks yet. Tap + to add one!</Text>
-      </View>
-    ),
-    []
+    () => {
+      if (flexibleTasks.length > 0) return null;
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No tasks yet. Tap + to add one!</Text>
+        </View>
+      );
+    },
+    [flexibleTasks.length]
+  );
+
+  const ListHeaderComponent = useCallback(
+    () => {
+      if (flexibleTasks.length === 0) return null;
+      return (
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionHeader}>All-Day / Flexible</Text>
+          {flexibleTasks.map((task) => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              onToggle={toggleTask}
+              onDelete={deleteTask}
+              onPress={handleTaskPress}
+            />
+          ))}
+          {scheduledTasks.length > 0 && (
+            <Text style={styles.sectionHeader}>Scheduled</Text>
+          )}
+        </View>
+      );
+    },
+    [flexibleTasks, scheduledTasks.length, toggleTask, deleteTask, handleTaskPress]
   );
 
   return (
@@ -62,11 +114,12 @@ export default function TimelineScreen() {
         <DaySelector activeDate={activeDate} onSelectDate={setActiveDate} />
 
         <Animated.FlatList
-          data={timelineTasks}
+          data={scheduledTasks}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.listContent}
           itemLayoutAnimation={LinearTransition.springify()}
+          ListHeaderComponent={ListHeaderComponent}
           ListEmptyComponent={ListEmptyComponent}
           showsVerticalScrollIndicator={false}
         />

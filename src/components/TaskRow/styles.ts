@@ -21,21 +21,19 @@ const TIMELINE_LINE_WIDTH = 2;
 
 export const styles = StyleSheet.create({
   swipeableContainer: {
-    paddingBottom: spacing.sm, // 16px gap between cards
+    // height applied via inline proportionalStyle
   },
   gapConnector: {
     position: 'absolute',
-    bottom: 0,
     left: 27, // GlassCard padding (16) + checkbox center (24/2) - line center (1)
-    height: spacing.sm, // Exactly fills the 16px gap
     width: TIMELINE_LINE_WIDTH,
     backgroundColor: 'rgba(255, 255, 255, 0.3)', // Frosted white
-    zIndex: -1,
   },
   cardWrapper: {
     // Deprecated: GlassCard handles the card container
   },
   container: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.xs,

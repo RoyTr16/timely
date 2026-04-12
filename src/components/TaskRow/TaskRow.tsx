@@ -13,7 +13,7 @@ import { Repeat, Trash2, Zap } from 'lucide-react-native';
 import { colors, timing } from '../../types/theme';
 import type { Task } from '../../types/task';
 import { useCategories } from '../../hooks';
-import { resolveTaskStyle, ICON_REGISTRY } from '../../utils';
+import { resolveTaskStyle, ICON_REGISTRY, calculateGap } from '../../utils';
 import { Checkbox } from '../Checkbox';
 import { GlassCard } from '../GlassCard';
 import { styles, TASKROW_CONSTANTS, getEnergyColor } from './styles';
@@ -23,12 +23,48 @@ interface TaskRowProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onPress: (task: Task) => void;
+  isProportional?: boolean;
+  previousTaskEndTime?: string;
 }
 
-export function TaskRow({ task, onToggle, onDelete, onPress }: TaskRowProps) {
+// Layout constants for proportional rendering
+const PIXELS_PER_MINUTE = 1.2;
+const MIN_HEIGHT = 64; // Floor for proportional scaling; content can grow beyond
+const MAX_GAP_PIXELS = 120;
+
+export function TaskRow({ task, onToggle, onDelete, onPress, isProportional = false, previousTaskEndTime }: TaskRowProps) {
   const { categories } = useCategories();
   const { color: resolvedColor, icon: resolvedIcon } = resolveTaskStyle(task, categories);
   const IconComponent = resolvedIcon ? ICON_REGISTRY[resolvedIcon] : null;
+
+  // Calculate proportional dimensions
+  const proportionalStyle = useMemo(() => {
+    if (!isProportional) {
+      // Non-proportional: just add default bottom margin
+      return { marginBottom: 8 };
+    }
+
+    const style: { minHeight?: number; marginTop?: number; marginBottom: number } = {
+      marginBottom: 8, // Base spacing between scheduled tasks
+    };
+
+    // Dynamic minHeight based on duration (minHeight allows content to grow beyond if needed)
+    const durationMinutes = task.durationMinutes ?? 30; // Default 30 min if no duration
+    style.minHeight = Math.max(MIN_HEIGHT, durationMinutes * PIXELS_PER_MINUTE);
+
+    // Dynamic gap based on time between tasks
+    if (previousTaskEndTime && task.startTime) {
+      const gapMinutes = calculateGap(previousTaskEndTime, task.startTime);
+      if (gapMinutes > 0) {
+        style.marginTop = Math.min(gapMinutes * PIXELS_PER_MINUTE, MAX_GAP_PIXELS);
+      }
+    }
+
+    return style;
+  }, [isProportional, task.durationMinutes, task.startTime, previousTaskEndTime]);
+
+  // Calculate card height for explicit passing to GlassCard
+  const cardMinHeight = proportionalStyle.minHeight;
 
   const completionProgress = useSharedValue(task.isCompleted ? 1 : 0);
 
@@ -83,15 +119,28 @@ export function TaskRow({ task, onToggle, onDelete, onPress }: TaskRowProps) {
   );
 
   return (
-    <View style={styles.swipeableContainer}>
-      <View style={styles.gapConnector} />
+    <View style={[styles.swipeableContainer, proportionalStyle]}>
+      {proportionalStyle.marginTop && proportionalStyle.marginTop > 0 && (
+        <View
+          style={[
+            styles.gapConnector,
+            { 
+              height: proportionalStyle.marginTop + proportionalStyle.marginBottom, 
+              top: -(proportionalStyle.marginTop + proportionalStyle.marginBottom),
+            },
+          ]}
+        />
+      )}
       <ReanimatedSwipeable
         friction={2}
         rightThreshold={TASKROW_CONSTANTS.swipeThreshold}
         renderRightActions={renderRightActions}
         onSwipeableWillOpen={handleDelete}
       >
-        <GlassCard tintColor={resolvedColor}>
+        <GlassCard 
+          tintColor={resolvedColor} 
+          style={cardMinHeight ? { minHeight: cardMinHeight } : undefined}
+        >
           <Pressable
             onPress={handlePress}
             style={({ pressed }) => [

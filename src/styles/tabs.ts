@@ -33,6 +33,16 @@ export const styles = StyleSheet.create({
     fontSize: typography.sizes.base,
     color: colors.textMuted,
   },
+  sectionContainer: {
+    marginBottom: spacing.sm,
+  },
+  sectionHeader: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.textMuted,
+    marginBottom: spacing.xs,
+    marginTop: spacing.sm,
+  },
   fab: {
     position: 'absolute',
     bottom: spacing.lg,
