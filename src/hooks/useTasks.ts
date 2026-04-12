@@ -26,6 +26,7 @@ interface UseTasksReturn {
   updateTask: (id: string, updates: Partial<Task>) => void;
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
+  updateBacklogOrder: (reorderedTasks: Task[]) => void;
 }
 
 function generateId(): string {
@@ -124,10 +125,27 @@ export function useTasks(targetDateStr?: string): UseTasksReturn {
     });
   }, [tasks, dateStr]);
 
-  // Derive tasks without scheduledDate (backlog)
+  // Derive tasks without scheduledDate (backlog), sorted by sortOrder
   const backlogTasks = useMemo(
-    () => tasks.filter((task) => !task.scheduledDate),
+    () => tasks
+      .filter((task) => !task.scheduledDate)
+      .sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity)),
     [tasks]
+  );
+
+  // Update sortOrder for reordered backlog tasks
+  const updateBacklogOrder = useCallback(
+    (reorderedTasks: Task[]) => {
+      const updatedBacklog = reorderedTasks.map((task, index) => ({
+        ...task,
+        sortOrder: index,
+      }));
+
+      // Merge updated backlog with non-backlog tasks
+      const nonBacklogTasks = tasks.filter((task) => task.scheduledDate);
+      persistTasks([...updatedBacklog, ...nonBacklogTasks]);
+    },
+    [tasks, persistTasks]
   );
 
   return {
@@ -138,5 +156,6 @@ export function useTasks(targetDateStr?: string): UseTasksReturn {
     updateTask,
     toggleTask,
     deleteTask,
+    updateBacklogOrder,
   };
 }

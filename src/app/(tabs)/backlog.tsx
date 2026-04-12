@@ -2,7 +2,8 @@ import { useCallback, useRef, useState } from 'react';
 import { View, Text } from 'react-native';
 
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import Animated, { LinearTransition } from 'react-native-reanimated';
+import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTasks } from '../../hooks/useTasks';
@@ -11,7 +12,7 @@ import type { Task } from '../../types/task';
 import { styles } from '../../styles/tabs';
 
 export default function BacklogScreen() {
-  const { backlogTasks, addTask, updateTask, toggleTask, deleteTask } = useTasks();
+  const { backlogTasks, addTask, toggleTask, deleteTask, updateBacklogOrder } = useTasks();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
@@ -25,13 +26,16 @@ export default function BacklogScreen() {
   }, []);
 
   const renderItem = useCallback(
-    ({ item }: { item: Task }) => (
-      <TaskRow
-        task={item}
-        onToggle={toggleTask}
-        onDelete={deleteTask}
-        onPress={handleTaskPress}
-      />
+    ({ item, drag }: RenderItemParams<Task>) => (
+      <ScaleDecorator>
+        <TaskRow
+          task={item}
+          onToggle={toggleTask}
+          onDelete={deleteTask}
+          onPress={handleTaskPress}
+          onLongPress={drag}
+        />
+      </ScaleDecorator>
     ),
     [toggleTask, deleteTask, handleTaskPress]
   );
@@ -48,30 +52,31 @@ export default function BacklogScreen() {
   );
 
   return (
-    <BottomSheetModalProvider>
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Backlog</Text>
-        </View>
+    <GestureHandlerRootView style={styles.container}>
+      <BottomSheetModalProvider>
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Backlog</Text>
+          </View>
 
-        <Animated.FlatList
-          data={backlogTasks}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          contentContainerStyle={styles.listContent}
-          itemLayoutAnimation={LinearTransition.springify()}
-          ListEmptyComponent={ListEmptyComponent}
-          showsVerticalScrollIndicator={false}
-        />
+          <DraggableFlatList
+            data={backlogTasks}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            onDragEnd={({ data }) => updateBacklogOrder(data)}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={ListEmptyComponent}
+            showsVerticalScrollIndicator={false}
+          />
 
-        <TaskComposer
-          ref={bottomSheetRef}
-          taskToEdit={selectedTask}
-          onAddTask={addTask}
-          onUpdateTask={updateTask}
-          onDismiss={handleDismiss}
-        />
-      </SafeAreaView>
-    </BottomSheetModalProvider>
+          <TaskComposer
+            ref={bottomSheetRef}
+            templateTask={selectedTask}
+            onAddTask={addTask}
+            onDismiss={handleDismiss}
+          />
+        </SafeAreaView>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }

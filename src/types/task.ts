@@ -49,4 +49,5 @@ export interface Task {
   color?: string; // Explicit color override
   icon?: string; // Explicit icon override
   scheduledDate?: string; // YYYY-MM-DD format
+  sortOrder?: number; // For backlog drag-and-drop ordering
 }

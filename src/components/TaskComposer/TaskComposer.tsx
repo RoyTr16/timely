@@ -27,6 +27,7 @@ interface RecurrenceBadge {
 
 interface TaskComposerProps {
   taskToEdit?: Task | null;
+  templateTask?: Task | null;
   selectedDateStr?: string;
   onAddTask: (input: {
     title: string;
@@ -61,7 +62,7 @@ const ENERGY_OPTIONS: { value: EnergyLevel; label: string }[] = [
 ];
 
 export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
-  ({ taskToEdit, selectedDateStr, onAddTask, onUpdateTask, onDismiss }, ref) => {
+  ({ taskToEdit, templateTask, selectedDateStr, onAddTask, onUpdateTask, onDismiss }, ref) => {
     const [title, setTitle] = useState('');
     const [recurrence, setRecurrence] = useState<RecurrenceOption>('none');
     const [activeTool, setActiveTool] = useState<ActiveTool>('time');
@@ -110,6 +111,38 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
         }
       }
     }, [taskToEdit]);
+
+    // Pre-fill state when spawning from a template (backlog task)
+    useEffect(() => {
+      if (templateTask) {
+        setTitle(templateTask.title);
+        setDurationMinutes(templateTask.durationMinutes ?? 30);
+        setEnergyLevel(templateTask.energyLevel ?? null);
+        setSelectedColor(templateTask.color ?? null);
+        setSelectedIcon(templateTask.icon ?? null);
+
+        // Parse startTime into startDate
+        if (templateTask.startTime) {
+          const [hours, minutes] = templateTask.startTime.split(':').map(Number);
+          const date = new Date();
+          date.setHours(hours, minutes, 0, 0);
+          setStartDate(date);
+        } else {
+          setStartDate(new Date());
+        }
+
+        // Determine recurrence option
+        if (!templateTask.recurrence) {
+          setRecurrence('none');
+        } else if (templateTask.recurrence.type === 'daily') {
+          setRecurrence('daily');
+        } else if (templateTask.recurrence.type === 'weekly') {
+          setRecurrence('weekly');
+        } else {
+          setRecurrence('none');
+        }
+      }
+    }, [templateTask]);
 
     const resetState = useCallback(() => {
       setTitle('');
@@ -179,7 +212,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
           icon: selectedIcon ?? undefined,
         });
       } else {
-        // Create new task
+        // Create new task (from scratch or from template)
         onAddTask({
           title: trimmedTitle,
           recurrence: recurrenceRule,

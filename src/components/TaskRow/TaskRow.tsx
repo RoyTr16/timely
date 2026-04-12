@@ -23,6 +23,7 @@ interface TaskRowProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onPress: (task: Task) => void;
+  onLongPress?: () => void;
   isProportional?: boolean;
   previousTaskEndTime?: string;
 }
@@ -32,7 +33,7 @@ const PIXELS_PER_MINUTE = 1.2;
 const MIN_HEIGHT = 64; // Floor for proportional scaling; content can grow beyond
 const MAX_GAP_PIXELS = 120;
 
-export function TaskRow({ task, onToggle, onDelete, onPress, isProportional = false, previousTaskEndTime }: TaskRowProps) {
+export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, isProportional = false, previousTaskEndTime }: TaskRowProps) {
   const { categories } = useCategories();
   const { color: resolvedColor, icon: resolvedIcon } = resolveTaskStyle(task, categories);
   const IconComponent = resolvedIcon ? ICON_REGISTRY[resolvedIcon] : null;
@@ -124,8 +125,8 @@ export function TaskRow({ task, onToggle, onDelete, onPress, isProportional = fa
         <View
           style={[
             styles.gapConnector,
-            { 
-              height: proportionalStyle.marginTop + proportionalStyle.marginBottom, 
+            {
+              height: proportionalStyle.marginTop + proportionalStyle.marginBottom,
               top: -(proportionalStyle.marginTop + proportionalStyle.marginBottom),
             },
           ]}
@@ -137,12 +138,13 @@ export function TaskRow({ task, onToggle, onDelete, onPress, isProportional = fa
         renderRightActions={renderRightActions}
         onSwipeableWillOpen={handleDelete}
       >
-        <GlassCard 
-          tintColor={resolvedColor} 
+        <GlassCard
+          tintColor={resolvedColor}
           style={cardMinHeight ? { minHeight: cardMinHeight } : undefined}
         >
           <Pressable
             onPress={handlePress}
+            onLongPress={onLongPress}
             style={({ pressed }) => [
               styles.container,
               pressed && { opacity: TASKROW_CONSTANTS.activeOpacity },

@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 
-import { Calendar, Inbox } from 'lucide-react-native';
+import { Calendar, Inbox, Settings } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing } from '../../types/theme';
@@ -34,6 +34,12 @@ export default function TabsLayout() {
         name="backlog"
         options={{
           tabBarIcon: ({ color, size }) => <Inbox size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />,
         }}
       />
     </Tabs>
