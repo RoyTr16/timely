@@ -1,34 +1,24 @@
-import { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
-} from 'react-native';
+import { useCallback, useRef } from 'react';
+import { View, Text, Pressable } from 'react-native';
 
+import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Plus } from 'lucide-react-native';
 
 import { useTasks } from '../../hooks/useTasks';
-import { TaskRow } from '../../components';
+import { TaskRow, TaskComposer } from '../../components';
 import { colors } from '../../types/theme';
 import type { Task } from '../../types/task';
 import { styles } from './_styles';
 
 export default function TimelineScreen() {
   const { tasks, addTask, toggleTask } = useTasks();
-  const [inputText, setInputText] = useState('');
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
 
-  const handleSubmit = useCallback(() => {
-    const trimmedText = inputText.trim();
-    if (!trimmedText) return;
-
-    addTask({ title: trimmedText });
-    setInputText('');
-    Keyboard.dismiss();
-  }, [inputText, addTask]);
+  const handleOpenComposer = useCallback(() => {
+    bottomSheetRef.current?.present();
+  }, []);
 
   const renderItem = useCallback(
     ({ item }: { item: Task }) => (
@@ -42,18 +32,14 @@ export default function TimelineScreen() {
   const ListEmptyComponent = useCallback(
     () => (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No tasks yet. Add one below!</Text>
+        <Text style={styles.emptyText}>No tasks yet. Tap + to add one!</Text>
       </View>
     ),
     []
   );
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
+    <BottomSheetModalProvider>
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Today</Text>
@@ -67,24 +53,20 @@ export default function TimelineScreen() {
           itemLayoutAnimation={LinearTransition.springify()}
           ListEmptyComponent={ListEmptyComponent}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
         />
 
-        <View style={styles.inputContainer}>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              value={inputText}
-              onChangeText={setInputText}
-              placeholder="Add a task..."
-              placeholderTextColor={colors.textMuted}
-              returnKeyType="done"
-              onSubmitEditing={handleSubmit}
-              blurOnSubmit={false}
-            />
-          </View>
-        </View>
+        <Pressable
+          style={({ pressed }) => [
+            styles.fab,
+            pressed && styles.fabPressed,
+          ]}
+          onPress={handleOpenComposer}
+        >
+          <Plus size={24} color={colors.textPrimary} />
+        </Pressable>
+
+        <TaskComposer ref={bottomSheetRef} onAddTask={addTask} />
       </SafeAreaView>
-    </KeyboardAvoidingView>
+    </BottomSheetModalProvider>
   );
 }
