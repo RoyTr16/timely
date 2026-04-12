@@ -1,16 +1,14 @@
-import { createMMKV } from 'react-native-mmkv';
-import type { MMKV } from 'react-native-mmkv';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
- * Single source of truth MMKV instance for the entire app.
- * All data operations are synchronous - no async/await needed.
+ * Storage abstraction layer.
+ * Uses AsyncStorage for Expo Go compatibility.
+ * Can be swapped to MMKV when using development builds.
  *
  * UI components must NOT import this directly.
  * Access data through custom hooks in src/hooks/ instead.
  */
-export const storage: MMKV = createMMKV({
-  id: 'timely-storage',
-});
+export const storage = AsyncStorage;
 
 /**
  * Storage keys enum to prevent typos and enable autocomplete.
