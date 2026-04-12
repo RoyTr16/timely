@@ -48,4 +48,5 @@ export interface Task {
   energyLevel?: EnergyLevel;
   color?: string; // Explicit color override
   icon?: string; // Explicit icon override
+  scheduledDate?: string; // YYYY-MM-DD format
 }

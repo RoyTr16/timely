@@ -1,23 +1,20 @@
 import type { Task } from '../types/task';
 
 /**
- * Checks if two timestamps fall on the same calendar date.
+ * Formats a Date object to "YYYY-MM-DD" string.
  */
-function isSameDay(timestamp1: number, timestamp2: number): boolean {
-  const date1 = new Date(timestamp1);
-  const date2 = new Date(timestamp2);
-  return (
-    date1.getFullYear() === date2.getFullYear() &&
-    date1.getMonth() === date2.getMonth() &&
-    date1.getDate() === date2.getDate()
-  );
+export function getFormattedDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
- * Returns the day of week (0 = Sunday, 6 = Saturday) for a timestamp.
+ * Returns the day of week (0 = Sunday, 6 = Saturday) for a date string.
  */
-function getDayOfWeek(timestamp: number): number {
-  return new Date(timestamp).getDay();
+function getDayOfWeekFromStr(dateStr: string): number {
+  return new Date(dateStr).getDay();
 }
 
 /**
@@ -28,58 +25,75 @@ function isWeekday(dayIndex: number): boolean {
 }
 
 /**
- * Determines if a task should appear in today's list.
+ * Determines if a task should appear on a specific date.
  *
  * Rules:
- * - daily: Always due today
- * - weekly: Due if today's day matches the day the task was created
- * - custom_days: Due if today matches one of the specified days
- * - no recurrence: Due only if created today
+ * - If task.scheduledDate matches targetDateStr, show it
+ * - daily recurrence: Always show
+ * - weekly recurrence: Show if day of week matches task's scheduledDate (or createdAt)
+ * - custom_days: Show if targetDateStr's day matches one of the specified days
+ * - No scheduledDate and no recurrence: Backlog task, return false
+ */
+export function isTaskActiveOnDate(task: Task, targetDateStr: string): boolean {
+  const targetDayIndex = getDayOfWeekFromStr(targetDateStr);
+
+  // If task has a specific scheduled date
+  if (task.scheduledDate) {
+    // Exact date match
+    if (task.scheduledDate === targetDateStr) {
+      return true;
+    }
+
+    // Check recurrence patterns
+    if (task.recurrence) {
+      switch (task.recurrence.type) {
+        case 'daily':
+          return true;
+
+        case 'weekly': {
+          const scheduledDayIndex = getDayOfWeekFromStr(task.scheduledDate);
+          return targetDayIndex === scheduledDayIndex;
+        }
+
+        case 'custom_days': {
+          const dayMap = [
+            'sunday',
+            'monday',
+            'tuesday',
+            'wednesday',
+            'thursday',
+            'friday',
+            'saturday',
+          ] as const;
+          const targetDayName = dayMap[targetDayIndex];
+          return task.recurrence.days.includes(targetDayName);
+        }
+
+        default:
+          return false;
+      }
+    }
+
+    return false;
+  }
+
+  // No scheduledDate = Backlog task
+  return false;
+}
+
+/**
+ * Legacy: Checks if a task should appear in today's list.
+ * @deprecated Use isTaskActiveOnDate instead
  */
 export function isTaskDueToday(task: Task): boolean {
-  const now = Date.now();
-  const todayDayIndex = getDayOfWeek(now);
-
-  if (!task.recurrence) {
-    // One-time task: only show on creation date
-    return isSameDay(task.createdAt, now);
-  }
-
-  switch (task.recurrence.type) {
-    case 'daily':
-      return true;
-
-    case 'weekly': {
-      // Due on the same day of week as when it was created
-      const createdDayIndex = getDayOfWeek(task.createdAt);
-      return todayDayIndex === createdDayIndex;
-    }
-
-    case 'custom_days': {
-      // Map day index to DayOfWeek type
-      const dayMap = [
-        'sunday',
-        'monday',
-        'tuesday',
-        'wednesday',
-        'thursday',
-        'friday',
-        'saturday',
-      ] as const;
-      const todayName = dayMap[todayDayIndex];
-      return task.recurrence.days.includes(todayName);
-    }
-
-    default:
-      return false;
-  }
+  return isTaskActiveOnDate(task, getFormattedDate(new Date()));
 }
 
 /**
  * Checks if today is a weekday (Monday-Friday).
  */
 export function isTodayWeekday(): boolean {
-  return isWeekday(getDayOfWeek(Date.now()));
+  return isWeekday(new Date().getDay());
 }
 
 /**

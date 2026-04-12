@@ -7,13 +7,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus } from 'lucide-react-native';
 
 import { useTasks } from '../../hooks/useTasks';
-import { TaskRow, TaskComposer } from '../../components';
+import { TaskRow, TaskComposer, DaySelector } from '../../components';
 import { colors } from '../../types/theme';
+import { getFormattedDate } from '../../utils';
 import type { Task } from '../../types/task';
 import { styles } from '../../styles/tabs';
 
 export default function TimelineScreen() {
-  const { todayTasks, addTask, updateTask, toggleTask, deleteTask } = useTasks();
+  const [activeDate, setActiveDate] = useState(() => getFormattedDate(new Date()));
+  const { timelineTasks, addTask, updateTask, toggleTask, deleteTask } = useTasks(activeDate);
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
@@ -57,12 +59,10 @@ export default function TimelineScreen() {
   return (
     <BottomSheetModalProvider>
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Today</Text>
-        </View>
+        <DaySelector activeDate={activeDate} onSelectDate={setActiveDate} />
 
         <Animated.FlatList
-          data={todayTasks}
+          data={timelineTasks}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.listContent}
@@ -84,6 +84,7 @@ export default function TimelineScreen() {
         <TaskComposer
           ref={bottomSheetRef}
           taskToEdit={selectedTask}
+          selectedDateStr={activeDate}
           onAddTask={addTask}
           onUpdateTask={updateTask}
           onDismiss={handleDismiss}

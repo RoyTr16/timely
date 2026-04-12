@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { storage, StorageKeys } from '../store/mmkv';
-import { isTaskDueToday } from '../utils/dateEngine';
+import { isTaskActiveOnDate, getFormattedDate } from '../utils/dateEngine';
 import type { Task, RecurrenceRule, EnergyLevel } from '../types/task';
 
 const STORAGE_KEY = `app.${StorageKeys.TASKS}`;
@@ -15,11 +15,12 @@ interface NewTaskInput {
   energyLevel?: EnergyLevel;
   color?: string;
   icon?: string;
+  scheduledDate?: string;
 }
 
 interface UseTasksReturn {
   tasks: Task[];
-  todayTasks: Task[];
+  timelineTasks: Task[];
   backlogTasks: Task[];
   addTask: (input: NewTaskInput) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
@@ -31,8 +32,9 @@ function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
-export function useTasks(): UseTasksReturn {
+export function useTasks(targetDateStr?: string): UseTasksReturn {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const dateStr = targetDateStr ?? getFormattedDate(new Date());
 
   // Load tasks from storage on mount
   useEffect(() => {
@@ -73,6 +75,7 @@ export function useTasks(): UseTasksReturn {
         energyLevel: input.energyLevel,
         color: input.color,
         icon: input.icon,
+        scheduledDate: input.scheduledDate,
       };
 
       persistTasks([newTask, ...tasks]);
@@ -108,9 +111,9 @@ export function useTasks(): UseTasksReturn {
     [tasks, persistTasks]
   );
 
-  // Derive tasks that are due today, sorted chronologically
-  const todayTasks = useMemo(() => {
-    const filtered = tasks.filter(isTaskDueToday);
+  // Derive tasks active on targeted date, sorted chronologically
+  const timelineTasks = useMemo(() => {
+    const filtered = tasks.filter((task) => isTaskActiveOnDate(task, dateStr));
     return filtered.sort((a, b) => {
       // Tasks without startTime ("All Day") come first
       if (!a.startTime && !b.startTime) return 0;
@@ -119,17 +122,17 @@ export function useTasks(): UseTasksReturn {
       // Both have startTime, sort chronologically
       return a.startTime.localeCompare(b.startTime);
     });
-  }, [tasks]);
+  }, [tasks, dateStr]);
 
-  // Derive tasks NOT due today (backlog)
+  // Derive tasks without scheduledDate (backlog)
   const backlogTasks = useMemo(
-    () => tasks.filter((task) => !isTaskDueToday(task)),
+    () => tasks.filter((task) => !task.scheduledDate),
     [tasks]
   );
 
   return {
     tasks,
-    todayTasks,
+    timelineTasks,
     backlogTasks,
     addTask,
     updateTask,

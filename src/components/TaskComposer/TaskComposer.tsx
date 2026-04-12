@@ -27,6 +27,7 @@ interface RecurrenceBadge {
 
 interface TaskComposerProps {
   taskToEdit?: Task | null;
+  selectedDateStr?: string;
   onAddTask: (input: {
     title: string;
     recurrence?: RecurrenceRule;
@@ -35,6 +36,7 @@ interface TaskComposerProps {
     energyLevel?: EnergyLevel;
     color?: string;
     icon?: string;
+    scheduledDate?: string;
   }) => void;
   onUpdateTask?: (id: string, updates: Partial<Task>) => void;
   onDismiss?: () => void;
@@ -59,7 +61,7 @@ const ENERGY_OPTIONS: { value: EnergyLevel; label: string }[] = [
 ];
 
 export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
-  ({ taskToEdit, onAddTask, onUpdateTask, onDismiss }, ref) => {
+  ({ taskToEdit, selectedDateStr, onAddTask, onUpdateTask, onDismiss }, ref) => {
     const [title, setTitle] = useState('');
     const [recurrence, setRecurrence] = useState<RecurrenceOption>('none');
     const [activeTool, setActiveTool] = useState<ActiveTool>('time');
@@ -186,6 +188,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
           energyLevel: energyLevel ?? undefined,
           color: selectedColor ?? undefined,
           icon: selectedIcon ?? undefined,
+          scheduledDate: selectedDateStr,
         });
       }
 
@@ -193,7 +196,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
       resetState();
       Keyboard.dismiss();
       (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss();
-    }, [title, recurrence, startDate, formatTime, durationMinutes, energyLevel, selectedColor, selectedIcon, taskToEdit, onAddTask, onUpdateTask, resetState, ref]);
+    }, [title, recurrence, startDate, formatTime, durationMinutes, energyLevel, selectedColor, selectedIcon, selectedDateStr, taskToEdit, onAddTask, onUpdateTask, resetState, ref]);
 
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
