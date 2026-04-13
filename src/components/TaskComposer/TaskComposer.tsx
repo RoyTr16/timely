@@ -13,6 +13,7 @@ import * as Haptics from 'expo-haptics';
 
 import { colors, palette } from '../../types/theme';
 import type { Task, RecurrenceRule, EnergyLevel } from '../../types/task';
+import { useCategories } from '../../hooks';
 import { ICON_REGISTRY, ICON_NAMES, QUICK_ICON_NAMES } from '../../utils';
 import { styles, COMPOSER_CONSTANTS } from './styles';
 
@@ -42,6 +43,7 @@ interface TaskComposerProps {
     scheduledDate?: string;
     isTemplate?: boolean;
     recurrenceDays?: number[];
+    categoryId?: string;
   }) => void;
   onUpdateTask?: (id: string, updates: Partial<Task>) => void;
   onDismiss?: () => void;
@@ -72,6 +74,7 @@ const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
   ({ taskToEdit, templateTask, selectedDateStr, context = 'timeline', defaultIsTemplate = false, onAddTask, onUpdateTask, onDismiss }, ref) => {
+    const { categories } = useCategories();
     const [title, setTitle] = useState('');
     const [recurrence, setRecurrence] = useState<RecurrenceOption>('none');
     const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
@@ -87,6 +90,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
     const [isTemplate, setIsTemplate] = useState(defaultIsTemplate);
     const [customHex, setCustomHex] = useState('');
     const [showIconModal, setShowIconModal] = useState(false);
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
     // Sync isTemplate when defaultIsTemplate changes (e.g. tab switch)
     useEffect(() => {
@@ -112,6 +116,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
         setSelectedIcon(taskToEdit.icon ?? null);
         setIsTemplate(taskToEdit.isTemplate ?? false);
         setRecurrenceDays(taskToEdit.recurrenceDays ?? []);
+        setSelectedCategoryId(taskToEdit.categoryId ?? null);
 
         if (taskToEdit.scheduledDate) {
           const [y, m, d] = taskToEdit.scheduledDate.split('-').map(Number);
@@ -158,6 +163,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
         setSelectedIcon(templateTask.icon ?? null);
         setIsTemplate(false); // Spawned tasks are not templates
         setRecurrenceDays(templateTask.recurrenceDays ?? []);
+        setSelectedCategoryId(templateTask.categoryId ?? null);
 
         if (templateTask.scheduledDate) {
           const [y, m, d] = templateTask.scheduledDate.split('-').map(Number);
@@ -210,6 +216,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
       setIsTemplate(defaultIsTemplate);
       setCustomHex('');
       setShowIconModal(false);
+      setSelectedCategoryId(null);
     }, [context, defaultIsTemplate]);
 
     const handleToolPress = useCallback((tool: ActiveTool) => {
@@ -308,6 +315,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
           scheduledDate: finalDate,
           isTemplate: isTemplate || undefined,
           recurrenceDays: finalRecurrenceDays,
+          categoryId: selectedCategoryId ?? undefined,
         });
       } else {
         onAddTask({
@@ -321,13 +329,14 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
           scheduledDate: finalDate,
           isTemplate: isTemplate || undefined,
           recurrenceDays: finalRecurrenceDays,
+          categoryId: selectedCategoryId ?? undefined,
         });
       }
 
       resetState();
       Keyboard.dismiss();
       (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss();
-    }, [title, recurrence, recurrenceDays, startDate, formatTime, formatDate, durationMinutes, energyLevel, selectedColor, selectedIcon, composerDate, selectedDateStr, isTemplate, taskToEdit, templateTask, onAddTask, onUpdateTask, resetState, ref]);
+    }, [title, recurrence, recurrenceDays, startDate, formatTime, formatDate, durationMinutes, energyLevel, selectedColor, selectedIcon, composerDate, selectedDateStr, isTemplate, selectedCategoryId, taskToEdit, templateTask, onAddTask, onUpdateTask, resetState, ref]);
 
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -615,6 +624,42 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
         {/* === STYLE TAB === */}
         {activeTool === 'style' && (
           <View style={styles.controlArea}>
+            {categories.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryPillRow}
+              >
+                {categories.map((cat) => {
+                  const CatIcon = ICON_REGISTRY[cat.icon];
+                  const isSelected = selectedCategoryId === cat.id;
+                  return (
+                    <Pressable
+                      key={cat.id}
+                      style={[
+                        styles.categoryPill,
+                        isSelected && { borderColor: cat.color, backgroundColor: `${cat.color}22` },
+                      ]}
+                      onPress={() => {
+                        Haptics.selectionAsync();
+                        if (isSelected) {
+                          setSelectedCategoryId(null);
+                        } else {
+                          setSelectedCategoryId(cat.id);
+                          setSelectedColor(cat.color);
+                          setSelectedIcon(cat.icon);
+                        }
+                      }}
+                    >
+                      {CatIcon && <CatIcon size={14} color={isSelected ? cat.color : colors.textMuted} />}
+                      <Text style={[styles.categoryPillText, isSelected && { color: cat.color }]}>
+                        {cat.name}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}

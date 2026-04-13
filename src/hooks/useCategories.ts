@@ -5,6 +5,12 @@ import type { Category } from '../types/task';
 
 const STORAGE_KEY = `app.${StorageKeys.CATEGORIES}`;
 
+const DEFAULT_CATEGORIES: Category[] = [
+  { id: 'default-1', name: 'Intel', color: '#3B82F6', icon: 'Briefcase' },
+  { id: 'default-2', name: 'Technion', color: '#10B981', icon: 'Book' },
+  { id: 'default-3', name: 'Personal', color: '#F97316', icon: 'Heart' },
+];
+
 interface UseCategoriesReturn {
   categories: Category[];
   addCategory: (input: Omit<Category, 'id'>) => void;
@@ -25,10 +31,14 @@ export function useCategories(): UseCategoriesReturn {
       try {
         const stored = await storage.getItem(STORAGE_KEY);
         if (stored) {
-          setCategories(JSON.parse(stored));
+          const parsed = JSON.parse(stored);
+          setCategories(parsed.length > 0 ? parsed : DEFAULT_CATEGORIES);
+        } else {
+          setCategories(DEFAULT_CATEGORIES);
+          await storage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_CATEGORIES));
         }
       } catch {
-        // Ignore parse errors, start with empty array
+        setCategories(DEFAULT_CATEGORIES);
       }
     };
     loadCategories();

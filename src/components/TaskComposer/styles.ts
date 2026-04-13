@@ -180,6 +180,27 @@ export const styles = StyleSheet.create({
   },
 
   // === Style Tab ===
+  categoryPillRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+  },
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm - 4,
+    paddingVertical: spacing.xs / 2,
+    borderRadius: radii.full,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  categoryPillText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
+    color: colors.textMuted,
+  },
   swatchRow: {
     flexDirection: 'row',
     gap: spacing.xs,
