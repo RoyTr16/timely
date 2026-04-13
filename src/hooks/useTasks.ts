@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { storage, StorageKeys } from '../store/mmkv';
-import { isTaskActiveOnDate, getFormattedDate } from '../utils/dateEngine';
+import { isTaskActiveOnDate, getFormattedDate, getTodayStr } from '../utils/dateEngine';
 import type { Task, RecurrenceRule, EnergyLevel } from '../types/task';
 
 const STORAGE_KEY = `app.${StorageKeys.TASKS}`;
+const ARCHIVED_TASKS_KEY = 'app.archived_tasks';
 
 // Cross-instance sync: notify all useTasks instances when data changes
 type Listener = () => void;
@@ -41,6 +42,44 @@ interface UseTasksReturn {
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
+export async function sweepCompletedTasks(): Promise<void> {
+  try {
+    const storedTasks = await storage.getItem(STORAGE_KEY);
+    if (!storedTasks) return;
+
+    const tasks: Task[] = JSON.parse(storedTasks);
+    const today = getTodayStr();
+
+    const tasksToKeep: Task[] = [];
+    const tasksToArchive: Task[] = [];
+
+    for (const task of tasks) {
+      const shouldArchive =
+        !task.isTemplate &&
+        !task.recurrence &&
+        task.completedDates &&
+        task.completedDates.length > 0 &&
+        task.completedDates.every((d) => d < today);
+
+      if (shouldArchive) {
+        tasksToArchive.push(task);
+      } else {
+        tasksToKeep.push(task);
+      }
+    }
+
+    if (tasksToArchive.length === 0) return;
+
+    const storedArchive = await storage.getItem(ARCHIVED_TASKS_KEY);
+    const archive: Task[] = storedArchive ? JSON.parse(storedArchive) : [];
+    await storage.setItem(ARCHIVED_TASKS_KEY, JSON.stringify([...archive, ...tasksToArchive]));
+    await storage.setItem(STORAGE_KEY, JSON.stringify(tasksToKeep));
+    notifyAll();
+  } catch {
+    // Sweep errors are non-critical
+  }
 }
 
 export function useTasks(targetDateStr?: string): UseTasksReturn {

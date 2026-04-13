@@ -1,12 +1,19 @@
+import { useEffect } from 'react';
+
 import { Tabs } from 'expo-router';
 
 import { Calendar, Inbox, Settings } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing } from '../../types/theme';
+import { sweepCompletedTasks } from '../../hooks/useTasks';
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    sweepCompletedTasks();
+  }, []);
 
   return (
     <Tabs
