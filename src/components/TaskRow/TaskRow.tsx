@@ -6,6 +6,9 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   interpolateColor,
+  FadeIn,
+  FadeOut,
+  LinearTransition,
 } from 'react-native-reanimated';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Bookmark, CalendarPlus, CheckCircle, Circle, GripVertical, Repeat, Trash2, Zap } from 'lucide-react-native';
@@ -125,7 +128,12 @@ export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, onQuic
   );
 
   return (
-    <View style={[styles.swipeableContainer, proportionalStyle]}>
+    <Animated.View
+      style={[styles.swipeableContainer, proportionalStyle]}
+      entering={FadeIn.duration(300).damping(20)}
+      exiting={FadeOut.duration(200)}
+      layout={LinearTransition.duration(300)}
+    >
       {proportionalStyle.marginTop && proportionalStyle.marginTop > 0 && (
         <View
           style={[
@@ -223,6 +231,6 @@ export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, onQuic
         </Pressable>
         </GlassCard>
       </ReanimatedSwipeable>
-    </View>
+    </Animated.View>
   );
 }

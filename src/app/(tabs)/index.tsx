@@ -2,7 +2,7 @@ import { useCallback, useRef, useState, useMemo } from 'react';
 import { View, Text, Pressable } from 'react-native';
 
 import { BottomSheetModal, BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import Animated, { LinearTransition } from 'react-native-reanimated';
+import Animated, { LinearTransition, Easing } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus } from 'lucide-react-native';
 
@@ -110,6 +110,11 @@ export default function TimelineScreen() {
     [flexibleTasks, scheduledTasks.length, toggleTaskCompletion, deleteTask, handleTaskPress, activeDate]
   );
 
+  const listLayoutAnimation = useMemo(
+    () => LinearTransition.duration(300).easing(Easing.bezier(0.25, 0.1, 0.25, 1.0)),
+    []
+  );
+
   return (
     <BottomSheetModalProvider>
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -120,7 +125,7 @@ export default function TimelineScreen() {
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.listContent}
-          itemLayoutAnimation={LinearTransition.springify()}
+          itemLayoutAnimation={listLayoutAnimation}
           ListHeaderComponent={ListHeaderComponent}
           ListEmptyComponent={ListEmptyComponent}
           showsVerticalScrollIndicator={false}
