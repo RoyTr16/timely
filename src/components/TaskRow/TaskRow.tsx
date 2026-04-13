@@ -8,7 +8,7 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { Bookmark, CheckCircle, Circle, GripVertical, Repeat, Trash2, Zap } from 'lucide-react-native';
+import { Bookmark, CalendarPlus, CheckCircle, Circle, GripVertical, Repeat, Trash2, Zap } from 'lucide-react-native';
 
 import { colors, timing } from '../../types/theme';
 import type { Task } from '../../types/task';
@@ -23,6 +23,7 @@ interface TaskRowProps {
   onDelete: (id: string) => void;
   onPress: (task: Task) => void;
   onLongPress?: () => void;
+  onQuickSchedule?: () => void;
   isBacklogContext?: boolean;
   isProportional?: boolean;
   previousTaskEndTime?: string;
@@ -34,7 +35,7 @@ const PIXELS_PER_MINUTE = 1.2;
 const MIN_HEIGHT = 64; // Floor for proportional scaling; content can grow beyond
 const MAX_GAP_PIXELS = 120;
 
-export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, isBacklogContext = false, isProportional = false, previousTaskEndTime, currentRenderDate }: TaskRowProps) {
+export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, onQuickSchedule, isBacklogContext = false, isProportional = false, previousTaskEndTime, currentRenderDate }: TaskRowProps) {
   const { categories } = useCategories();
   const { color: resolvedColor, icon: resolvedIcon } = resolveTaskStyle(task, categories);
   const IconComponent = resolvedIcon ? ICON_REGISTRY[resolvedIcon] : null;
@@ -213,6 +214,11 @@ export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, isBack
                 fill={colors.accent}
               />
             </View>
+          )}
+          {isBacklogContext && onQuickSchedule && (
+            <Pressable style={styles.quickScheduleButton} onPress={onQuickSchedule} hitSlop={8}>
+              <CalendarPlus size={TASKROW_CONSTANTS.taskIconSize} color={colors.accent} />
+            </Pressable>
           )}
         </Pressable>
         </GlassCard>

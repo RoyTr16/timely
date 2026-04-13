@@ -6,6 +6,13 @@ import type { Task, RecurrenceRule, EnergyLevel } from '../types/task';
 
 const STORAGE_KEY = `app.${StorageKeys.TASKS}`;
 
+// Cross-instance sync: notify all useTasks instances when data changes
+type Listener = () => void;
+const listeners = new Set<Listener>();
+function notifyAll() {
+  listeners.forEach((fn) => fn());
+}
+
 interface NewTaskInput {
   title: string;
   categoryId?: string;
@@ -23,7 +30,8 @@ interface NewTaskInput {
 interface UseTasksReturn {
   tasks: Task[];
   timelineTasks: Task[];
-  backlogTasks: Task[];
+  inboxTasks: Task[];
+  templateTasks: Task[];
   addTask: (input: NewTaskInput) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   toggleTaskCompletion: (taskId: string, dateStr: string) => void;
@@ -52,6 +60,11 @@ export function useTasks(targetDateStr?: string): UseTasksReturn {
       }
     };
     loadTasks();
+
+    // Re-load when another instance writes
+    const reload = () => { loadTasks(); };
+    listeners.add(reload);
+    return () => { listeners.delete(reload); };
   }, []);
 
   // Persist tasks whenever they change
@@ -59,6 +72,7 @@ export function useTasks(targetDateStr?: string): UseTasksReturn {
     setTasks(newTasks);
     try {
       await storage.setItem(STORAGE_KEY, JSON.stringify(newTasks));
+      notifyAll();
     } catch {
       // Handle storage errors silently
     }
@@ -133,10 +147,16 @@ export function useTasks(targetDateStr?: string): UseTasksReturn {
     });
   }, [tasks, dateStr]);
 
-  // Derive tasks without scheduledDate (backlog), sorted by sortOrder
-  const backlogTasks = useMemo(
+  const inboxTasks = useMemo(
     () => tasks
-      .filter((task) => !task.scheduledDate)
+      .filter((task) => !task.scheduledDate && !task.isTemplate)
+      .sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity)),
+    [tasks]
+  );
+
+  const templateTasks = useMemo(
+    () => tasks
+      .filter((task) => !task.scheduledDate && task.isTemplate)
       .sort((a, b) => (a.sortOrder ?? Infinity) - (b.sortOrder ?? Infinity)),
     [tasks]
   );
@@ -159,7 +179,8 @@ export function useTasks(targetDateStr?: string): UseTasksReturn {
   return {
     tasks,
     timelineTasks,
-    backlogTasks,
+    inboxTasks,
+    templateTasks,
     addTask,
     updateTask,
     toggleTaskCompletion,

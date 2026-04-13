@@ -30,6 +30,7 @@ interface TaskComposerProps {
   templateTask?: Task | null;
   selectedDateStr?: string;
   context?: 'timeline' | 'backlog';
+  defaultIsTemplate?: boolean;
   onAddTask: (input: {
     title: string;
     recurrence?: RecurrenceRule;
@@ -70,7 +71,7 @@ const ENERGY_OPTIONS: { value: EnergyLevel; label: string; color: string }[] = [
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
-  ({ taskToEdit, templateTask, selectedDateStr, context = 'timeline', onAddTask, onUpdateTask, onDismiss }, ref) => {
+  ({ taskToEdit, templateTask, selectedDateStr, context = 'timeline', defaultIsTemplate = false, onAddTask, onUpdateTask, onDismiss }, ref) => {
     const [title, setTitle] = useState('');
     const [recurrence, setRecurrence] = useState<RecurrenceOption>('none');
     const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
@@ -83,9 +84,16 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
     const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
     const [composerDate, setComposerDate] = useState<Date | null>(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [isTemplate, setIsTemplate] = useState(false);
+    const [isTemplate, setIsTemplate] = useState(defaultIsTemplate);
     const [customHex, setCustomHex] = useState('');
     const [showIconModal, setShowIconModal] = useState(false);
+
+    // Sync isTemplate when defaultIsTemplate changes (e.g. tab switch)
+    useEffect(() => {
+      if (!taskToEdit && !templateTask) {
+        setIsTemplate(defaultIsTemplate);
+      }
+    }, [defaultIsTemplate, taskToEdit, templateTask]);
 
     const snapPoints = useMemo(() => COMPOSER_CONSTANTS.snapPoints, []);
 
@@ -199,10 +207,10 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
       setSelectedIcon(null);
       setComposerDate(context === 'timeline' ? new Date() : null);
       setShowDatePicker(false);
-      setIsTemplate(false);
+      setIsTemplate(defaultIsTemplate);
       setCustomHex('');
       setShowIconModal(false);
-    }, [context]);
+    }, [context, defaultIsTemplate]);
 
     const handleToolPress = useCallback((tool: ActiveTool) => {
       setActiveTool((prev) => (prev === tool ? null : tool));

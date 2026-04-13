@@ -90,6 +90,10 @@ export const styles = StyleSheet.create({
   templateIndicator: {
     marginLeft: spacing.xs,
   },
+  quickScheduleButton: {
+    marginLeft: spacing.xs,
+    padding: spacing.xs,
+  },
   deleteAction: {
     width: 80,
     height: '100%',

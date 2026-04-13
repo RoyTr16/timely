@@ -64,3 +64,31 @@ export const styles = StyleSheet.create({
     transform: [{ scale: 0.95 }],
   },
 });
+
+export const segmentStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.sm,
+    marginBottom: spacing.xs,
+    borderRadius: radii.sm + 4,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+    alignItems: 'center',
+  },
+  tabActive: {
+    backgroundColor: colors.surfaceElevated,
+  },
+  tabText: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+  },
+  tabTextActive: {
+    color: colors.textPrimary,
+    fontWeight: typography.weights.medium,
+  },
+});
