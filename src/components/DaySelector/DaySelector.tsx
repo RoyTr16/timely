@@ -1,17 +1,20 @@
-import { useCallback, useMemo, useRef, useEffect, useState } from 'react';
-import { View, Text, Pressable, FlatList, Platform } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { View, Text, Pressable, Platform, useWindowDimensions } from 'react-native';
 
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
 
 import { colors } from '../../types/theme';
 import { getFormattedDate, getTodayStr } from '../../utils';
-import { styles, DAY_SELECTOR_CONSTANTS } from './styles';
+import { styles } from './styles';
 
 interface DayItem {
   dateStr: string;
   weekday: string;
   dayNumber: number;
+  isToday: boolean;
 }
 
 interface DaySelectorProps {
@@ -19,69 +22,82 @@ interface DaySelectorProps {
   onSelectDate: (date: string) => void;
 }
 
-const SHORT_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const SHORT_WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-function generateDaysAroundDate(centerDateStr: string): DayItem[] {
+function getSundayOfWeek(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const day = date.getDay();
+  date.setDate(date.getDate() - day);
+  return date;
+}
+
+function generateWeek(sundayDate: Date): DayItem[] {
+  const today = getTodayStr();
   const days: DayItem[] = [];
-  const centerDate = new Date(centerDateStr);
-
-  // Generate window: 7 days before + center day + 14 days after
-  for (let i = -DAY_SELECTOR_CONSTANTS.pastDays; i <= DAY_SELECTOR_CONSTANTS.futureDays; i++) {
-    const date = new Date(centerDate);
-    date.setDate(centerDate.getDate() + i);
-
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(sundayDate);
+    date.setDate(sundayDate.getDate() + i);
+    const dateStr = getFormattedDate(date);
     days.push({
-      dateStr: getFormattedDate(date),
-      weekday: SHORT_WEEKDAYS[date.getDay()],
+      dateStr,
+      weekday: SHORT_WEEKDAYS[i],
       dayNumber: date.getDate(),
+      isToday: dateStr === today,
     });
   }
-
   return days;
 }
 
 export function DaySelector({ activeDate, onSelectDate }: DaySelectorProps) {
-  const flatListRef = useRef<FlatList<DayItem>>(null);
   const [showPicker, setShowPicker] = useState(false);
+  const { width: screenWidth } = useWindowDimensions();
+  const translateX = useSharedValue(0);
 
-  // Parse activeDate for display
-  const activeDateObj = useMemo(() => new Date(activeDate), [activeDate]);
+  const SLIDE_EASING = Easing.bezier(0.25, 0.1, 0.25, 1.0);
+
+  const slideIn = useCallback((direction: 'left' | 'right') => {
+    const offset = direction === 'left' ? -screenWidth * 0.3 : screenWidth * 0.3;
+    translateX.value = offset;
+    translateX.value = withTiming(0, { duration: 280, easing: SLIDE_EASING });
+  }, [screenWidth, translateX, SLIDE_EASING]);
+
+  const weekAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+    opacity: 1 - Math.abs(translateX.value) / 200,
+  }));
+
+  const sunday = useMemo(() => getSundayOfWeek(activeDate), [activeDate]);
+  const week = useMemo(() => generateWeek(sunday), [sunday]);
+
+  const activeDateObj = useMemo(() => {
+    const [y, m, d] = activeDate.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }, [activeDate]);
+
   const monthYearLabel = useMemo(() => {
     return `${MONTH_NAMES[activeDateObj.getMonth()]} ${activeDateObj.getFullYear()}`;
   }, [activeDateObj]);
 
-  // Generate days window centered on activeDate
-  const days = useMemo(() => generateDaysAroundDate(activeDate), [activeDate]);
+  const isNotToday = activeDate !== getTodayStr();
 
-  // Scroll to active date when days array changes
-  useEffect(() => {
-    const activeIndex = days.findIndex((d) => d.dateStr === activeDate);
-    if (activeIndex !== -1 && flatListRef.current) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToIndex({
-          index: activeIndex,
-          animated: true,
-          viewPosition: 0.5,
-        });
-      }, 50);
-    }
-  }, [activeDate, days]);
-
-  const handlePrevMonth = useCallback(() => {
+  const handlePrevWeek = useCallback(() => {
+    slideIn('left');
     const newDate = new Date(activeDateObj);
-    newDate.setMonth(newDate.getMonth() - 1);
+    newDate.setDate(newDate.getDate() - 7);
     onSelectDate(getFormattedDate(newDate));
-  }, [activeDateObj, onSelectDate]);
+  }, [activeDateObj, onSelectDate, slideIn]);
 
-  const handleNextMonth = useCallback(() => {
+  const handleNextWeek = useCallback(() => {
+    slideIn('right');
     const newDate = new Date(activeDateObj);
-    newDate.setMonth(newDate.getMonth() + 1);
+    newDate.setDate(newDate.getDate() + 7);
     onSelectDate(getFormattedDate(newDate));
-  }, [activeDateObj, onSelectDate]);
+  }, [activeDateObj, onSelectDate, slideIn]);
 
   const handleDatePickerChange = useCallback(
     (event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -99,62 +115,19 @@ export function DaySelector({ activeDate, onSelectDate }: DaySelectorProps) {
     setShowPicker(true);
   }, []);
 
-  const handlePrevDay = useCallback(() => {
-    const date = new Date(activeDateObj);
-    date.setDate(date.getDate() - 1);
-    onSelectDate(getFormattedDate(date));
-  }, [activeDateObj, onSelectDate]);
-
-  const handleNextDay = useCallback(() => {
-    const date = new Date(activeDateObj);
-    date.setDate(date.getDate() + 1);
-    onSelectDate(getFormattedDate(date));
-  }, [activeDateObj, onSelectDate]);
-
-  const handlePress = useCallback(
-    (dateStr: string) => {
-      onSelectDate(dateStr);
-    },
-    [onSelectDate]
+  const swipeGesture = useMemo(() =>
+    Gesture.Pan()
+      .activeOffsetX([-30, 30])
+      .runOnJS(true)
+      .onEnd((e) => {
+        if (e.translationX < -50) {
+          handleNextWeek();
+        } else if (e.translationX > 50) {
+          handlePrevWeek();
+        }
+      }),
+    [handlePrevWeek, handleNextWeek]
   );
-
-  const renderItem = useCallback(
-    ({ item }: { item: DayItem }) => {
-      const isActive = item.dateStr === activeDate;
-
-      return (
-        <Pressable
-          onPress={() => handlePress(item.dateStr)}
-          style={({ pressed }) => [
-            styles.dayItem,
-            isActive && styles.dayItemActive,
-            pressed && { opacity: 0.7 },
-          ]}
-        >
-          <Text style={[styles.weekdayText, isActive && styles.weekdayTextActive]}>
-            {item.weekday}
-          </Text>
-          <Text style={[styles.dayNumber, isActive && styles.dayNumberActive]}>
-            {item.dayNumber}
-          </Text>
-        </Pressable>
-      );
-    },
-    [activeDate, handlePress]
-  );
-
-  const keyExtractor = useCallback((item: DayItem) => item.dateStr, []);
-
-  const getItemLayout = useCallback(
-    (_data: ArrayLike<DayItem> | null | undefined, index: number) => ({
-      length: DAY_SELECTOR_CONSTANTS.itemWidth,
-      offset: DAY_SELECTOR_CONSTANTS.itemWidth * index,
-      index,
-    }),
-    []
-  );
-
-  const isNotToday = activeDate !== getTodayStr();
 
   return (
     <View style={styles.container}>
@@ -163,7 +136,7 @@ export function DaySelector({ activeDate, onSelectDate }: DaySelectorProps) {
         <View style={styles.headerLeft}>
           <Pressable
             style={({ pressed }) => [styles.chevronButton, pressed && { opacity: 0.7 }]}
-            onPress={handlePrevMonth}
+            onPress={handlePrevWeek}
           >
             <ChevronLeft size={24} color={colors.textSecondary} />
           </Pressable>
@@ -185,39 +158,43 @@ export function DaySelector({ activeDate, onSelectDate }: DaySelectorProps) {
           )}
           <Pressable
             style={({ pressed }) => [styles.chevronButton, pressed && { opacity: 0.7 }]}
-            onPress={handleNextMonth}
+            onPress={handleNextWeek}
           >
             <ChevronRight size={24} color={colors.textSecondary} />
           </Pressable>
         </View>
       </View>
 
-      <View style={styles.dayListRow}>
-        <Pressable
-          style={({ pressed }) => [styles.dayChevron, pressed && { opacity: 0.7 }]}
-          onPress={handlePrevDay}
-        >
-          <ChevronLeft size={20} color={colors.textMuted} />
-        </Pressable>
-        <FlatList
-          ref={flatListRef}
-          data={days}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          getItemLayout={getItemLayout}
-          onScrollToIndexFailed={() => {}}
-          style={styles.dayList}
-        />
-        <Pressable
-          style={({ pressed }) => [styles.dayChevron, pressed && { opacity: 0.7 }]}
-          onPress={handleNextDay}
-        >
-          <ChevronRight size={20} color={colors.textMuted} />
-        </Pressable>
-      </View>
+      {/* Week Row */}
+      <GestureDetector gesture={swipeGesture}>
+        <Animated.View style={[styles.weekRow, weekAnimatedStyle]}>
+          {week.map((item) => {
+            const isActive = item.dateStr === activeDate;
+            return (
+              <Pressable
+                key={item.dateStr}
+                style={({ pressed }) => [
+                  styles.dayItem,
+                  isActive && styles.dayItemActive,
+                  pressed && { opacity: 0.7 },
+                ]}
+                onPress={() => onSelectDate(item.dateStr)}
+              >
+                <Text style={[styles.weekdayText, isActive && styles.weekdayTextActive]}>
+                  {item.weekday}
+                </Text>
+                <Text style={[
+                  styles.dayNumber,
+                  isActive && styles.dayNumberActive,
+                  item.isToday && !isActive && styles.dayNumberToday,
+                ]}>
+                  {item.dayNumber}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </Animated.View>
+      </GestureDetector>
 
       {/* Native Calendar Picker */}
       {showPicker && (

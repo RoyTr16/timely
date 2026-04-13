@@ -2,9 +2,6 @@ import { StyleSheet } from 'react-native';
 
 import { colors, spacing, radii, typography } from '../../types/theme';
 
-const DAY_ITEM_WIDTH = 50;
-const DAY_ITEM_HEIGHT = 65;
-
 export const styles = StyleSheet.create({
   container: {
     paddingVertical: spacing.xs,
@@ -13,7 +10,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.sm,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   headerLeft: {
     flex: 1,
@@ -46,33 +43,21 @@ export const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
     color: colors.accent,
   },
-  dayListRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dayChevron: {
-    padding: spacing.xs / 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dayList: {
-    flex: 1,
-  },
   monthYearText: {
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
   },
-  listContent: {
-    paddingHorizontal: spacing.sm,
-    gap: spacing.xs,
+  weekRow: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.xs,
   },
   dayItem: {
-    width: DAY_ITEM_WIDTH,
-    height: DAY_ITEM_HEIGHT,
-    borderRadius: radii.md,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
   },
   dayItemActive: {
     backgroundColor: `${colors.accent}33`,
@@ -82,7 +67,7 @@ export const styles = StyleSheet.create({
   weekdayText: {
     fontSize: typography.sizes.xs,
     color: colors.textMuted,
-    marginBottom: spacing.xs / 2,
+    marginBottom: 4,
   },
   weekdayTextActive: {
     color: colors.textSecondary,
@@ -95,10 +80,7 @@ export const styles = StyleSheet.create({
   dayNumberActive: {
     color: colors.textPrimary,
   },
+  dayNumberToday: {
+    color: colors.accent,
+  },
 });
-
-export const DAY_SELECTOR_CONSTANTS = {
-  pastDays: 7,
-  futureDays: 14,
-  itemWidth: DAY_ITEM_WIDTH + spacing.xs, // Include gap for layout calculation
-} as const;
