@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useState, useMemo, useEffect } from 'react';
-import { View, Text, Pressable, Keyboard, ScrollView, Platform } from 'react-native';
+import { View, Text, Pressable, Keyboard, ScrollView, Platform, Modal, FlatList } from 'react-native';
 
 import {
   BottomSheetModal,
@@ -8,17 +8,17 @@ import {
   BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Bookmark, Check, Calendar, Clock, Zap, Repeat, Palette, Play, Square } from 'lucide-react-native';
+import { Bookmark, CalendarClock, Check, Calendar, Clock, Zap, Palette, Play, Square, MoreHorizontal, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import { colors, palette } from '../../types/theme';
 import type { Task, RecurrenceRule, EnergyLevel } from '../../types/task';
-import { ICON_REGISTRY, ICON_NAMES } from '../../utils';
+import { ICON_REGISTRY, ICON_NAMES, QUICK_ICON_NAMES } from '../../utils';
 import { styles, COMPOSER_CONSTANTS } from './styles';
 
 type RecurrenceOption = 'none' | 'daily' | 'weekly';
-type ActiveTool = 'time' | 'energy' | 'recurrence' | 'style' | 'date' | null;
-type ActivePicker = 'start' | 'end' | null;
+type ActiveTool = 'schedule' | 'energy' | 'style' | null;
+type ActivePicker = 'start' | 'end' | 'date' | null;
 
 interface RecurrenceBadge {
   key: RecurrenceOption;
@@ -29,6 +29,7 @@ interface TaskComposerProps {
   taskToEdit?: Task | null;
   templateTask?: Task | null;
   selectedDateStr?: string;
+  context?: 'timeline' | 'backlog';
   onAddTask: (input: {
     title: string;
     recurrence?: RecurrenceRule;
@@ -39,13 +40,14 @@ interface TaskComposerProps {
     icon?: string;
     scheduledDate?: string;
     isTemplate?: boolean;
+    recurrenceDays?: number[];
   }) => void;
   onUpdateTask?: (id: string, updates: Partial<Task>) => void;
   onDismiss?: () => void;
 }
 
 const RECURRENCE_OPTIONS: RecurrenceBadge[] = [
-  { key: 'none', label: 'Today' },
+  { key: 'none', label: 'None' },
   { key: 'daily', label: 'Daily' },
   { key: 'weekly', label: 'Weekly' },
 ];
@@ -54,28 +56,36 @@ const DURATION_OPTIONS = [
   { value: 15, label: '15m' },
   { value: 30, label: '30m' },
   { value: 60, label: '1h' },
+  { value: 120, label: '2h' },
 ];
 
-const ENERGY_OPTIONS: { value: EnergyLevel; label: string }[] = [
-  { value: 1, label: '⚡ Low' },
-  { value: 2, label: '⚡⚡ Med' },
-  { value: 3, label: '⚡⚡⚡ High' },
+const ENERGY_OPTIONS: { value: EnergyLevel; label: string; color: string }[] = [
+  { value: 1, label: 'Brain Dead', color: '#3B82F6' },
+  { value: 2, label: 'Low Gear', color: '#06B6D4' },
+  { value: 3, label: 'Steady', color: '#22C55E' },
+  { value: 4, label: 'Focused', color: '#F59E0B' },
+  { value: 5, label: 'Deep Focus', color: '#EF4444' },
 ];
+
+const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
-  ({ taskToEdit, templateTask, selectedDateStr, onAddTask, onUpdateTask, onDismiss }, ref) => {
+  ({ taskToEdit, templateTask, selectedDateStr, context = 'timeline', onAddTask, onUpdateTask, onDismiss }, ref) => {
     const [title, setTitle] = useState('');
     const [recurrence, setRecurrence] = useState<RecurrenceOption>('none');
-    const [activeTool, setActiveTool] = useState<ActiveTool>('time');
+    const [recurrenceDays, setRecurrenceDays] = useState<number[]>([]);
+    const [activeTool, setActiveTool] = useState<ActiveTool>('schedule');
     const [startDate, setStartDate] = useState<Date>(new Date());
     const [durationMinutes, setDurationMinutes] = useState<number>(30);
     const [activePicker, setActivePicker] = useState<ActivePicker>(null);
     const [energyLevel, setEnergyLevel] = useState<EnergyLevel | null>(null);
     const [selectedColor, setSelectedColor] = useState<string | null>(null);
     const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
-    const [composerDate, setComposerDate] = useState<Date | null>(null);
+    const [composerDate, setComposerDate] = useState<Date | null>(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [isTemplate, setIsTemplate] = useState(false);
+    const [customHex, setCustomHex] = useState('');
+    const [showIconModal, setShowIconModal] = useState(false);
 
     const snapPoints = useMemo(() => COMPOSER_CONSTANTS.snapPoints, []);
 
@@ -93,6 +103,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
         setSelectedColor(taskToEdit.color ?? null);
         setSelectedIcon(taskToEdit.icon ?? null);
         setIsTemplate(taskToEdit.isTemplate ?? false);
+        setRecurrenceDays(taskToEdit.recurrenceDays ?? []);
 
         if (taskToEdit.scheduledDate) {
           const [y, m, d] = taskToEdit.scheduledDate.split('-').map(Number);
@@ -100,6 +111,8 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
         } else if (selectedDateStr) {
           const [y, m, d] = selectedDateStr.split('-').map(Number);
           setComposerDate(new Date(y, m - 1, d));
+        } else if (context === 'timeline') {
+          setComposerDate(new Date());
         } else {
           setComposerDate(null);
         }
@@ -136,6 +149,7 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
         setSelectedColor(templateTask.color ?? null);
         setSelectedIcon(templateTask.icon ?? null);
         setIsTemplate(false); // Spawned tasks are not templates
+        setRecurrenceDays(templateTask.recurrenceDays ?? []);
 
         if (templateTask.scheduledDate) {
           const [y, m, d] = templateTask.scheduledDate.split('-').map(Number);
@@ -143,6 +157,8 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
         } else if (selectedDateStr) {
           const [y, m, d] = selectedDateStr.split('-').map(Number);
           setComposerDate(new Date(y, m - 1, d));
+        } else if (context === 'timeline') {
+          setComposerDate(new Date());
         } else {
           setComposerDate(null);
         }
@@ -173,21 +189,25 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
     const resetState = useCallback(() => {
       setTitle('');
       setRecurrence('none');
-      setActiveTool('time');
+      setRecurrenceDays([]);
+      setActiveTool('schedule');
       setStartDate(new Date());
       setDurationMinutes(30);
       setActivePicker(null);
       setEnergyLevel(null);
       setSelectedColor(null);
       setSelectedIcon(null);
-      setComposerDate(null);
+      setComposerDate(context === 'timeline' ? new Date() : null);
       setShowDatePicker(false);
       setIsTemplate(false);
-    }, []);
+      setCustomHex('');
+      setShowIconModal(false);
+    }, [context]);
 
     const handleToolPress = useCallback((tool: ActiveTool) => {
       setActiveTool((prev) => (prev === tool ? null : tool));
-      setActivePicker(null); // Reset picker when switching tools
+      setActivePicker(null);
+      setShowDatePicker(false);
     }, []);
 
     const handleStartTimeChange = useCallback((event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -225,10 +245,29 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
     }, []);
 
     const handleDateChange = useCallback((event: DateTimePickerEvent, selectedDate?: Date) => {
-      if (Platform.OS === 'android') setShowDatePicker(false);
+      if (Platform.OS === 'android') setActivePicker(null);
       if (event.type === 'dismissed') return;
       if (selectedDate) {
         setComposerDate(selectedDate);
+      }
+    }, []);
+
+    // Format for display: "Apr 14"
+    const formatShortDate = useCallback((date: Date): string => {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }, []);
+
+    const toggleWeekday = useCallback((day: number) => {
+      setRecurrenceDays((prev) =>
+        prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+      );
+    }, []);
+
+    const handleCustomHex = useCallback((text: string) => {
+      const clean = text.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+      setCustomHex(clean);
+      if (clean.length === 6) {
+        setSelectedColor(`#${clean}`);
       }
     }, []);
 
@@ -245,9 +284,11 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
 
       const startTimeStr = formatTime(startDate);
       const finalDate = composerDate ? formatDate(composerDate) : selectedDateStr;
+      const finalRecurrenceDays = recurrence === 'weekly' && recurrenceDays.length > 0
+        ? recurrenceDays
+        : undefined;
 
       if (taskToEdit && onUpdateTask) {
-        // Update existing task
         onUpdateTask(taskToEdit.id, {
           title: trimmedTitle,
           recurrence: recurrenceRule,
@@ -258,9 +299,9 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
           icon: selectedIcon ?? undefined,
           scheduledDate: finalDate,
           isTemplate: isTemplate || undefined,
+          recurrenceDays: finalRecurrenceDays,
         });
       } else {
-        // Create new task (from scratch or from template)
         onAddTask({
           title: trimmedTitle,
           recurrence: recurrenceRule,
@@ -271,14 +312,14 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
           icon: selectedIcon ?? undefined,
           scheduledDate: finalDate,
           isTemplate: isTemplate || undefined,
+          recurrenceDays: finalRecurrenceDays,
         });
       }
 
-      // Reset and close
       resetState();
       Keyboard.dismiss();
       (ref as React.RefObject<BottomSheetModal>)?.current?.dismiss();
-    }, [title, recurrence, startDate, formatTime, formatDate, durationMinutes, energyLevel, selectedColor, selectedIcon, composerDate, selectedDateStr, isTemplate, taskToEdit, templateTask, onAddTask, onUpdateTask, resetState, ref]);
+    }, [title, recurrence, recurrenceDays, startDate, formatTime, formatDate, durationMinutes, energyLevel, selectedColor, selectedIcon, composerDate, selectedDateStr, isTemplate, taskToEdit, templateTask, onAddTask, onUpdateTask, resetState, ref]);
 
   const renderBackdrop = useCallback(
     (props: React.ComponentProps<typeof BottomSheetBackdrop>) => (
@@ -328,12 +369,12 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
         {/* Toolbox Icon Row */}
         <View style={styles.toolboxRow}>
           <Pressable
-            style={[styles.toolButton, activeTool === 'time' && styles.toolButtonActive]}
-            onPress={() => handleToolPress('time')}
+            style={[styles.toolButton, activeTool === 'schedule' && styles.toolButtonActive]}
+            onPress={() => handleToolPress('schedule')}
           >
-            <Clock
+            <CalendarClock
               size={20}
-              color={activeTool === 'time' ? colors.accent : colors.textMuted}
+              color={activeTool === 'schedule' ? colors.accent : colors.textMuted}
             />
           </Pressable>
           <Pressable
@@ -346,15 +387,6 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
             />
           </Pressable>
           <Pressable
-            style={[styles.toolButton, activeTool === 'recurrence' && styles.toolButtonActive]}
-            onPress={() => handleToolPress('recurrence')}
-          >
-            <Repeat
-              size={20}
-              color={activeTool === 'recurrence' || recurrence !== 'none' ? colors.accent : colors.textMuted}
-            />
-          </Pressable>
-          <Pressable
             style={[styles.toolButton, activeTool === 'style' && styles.toolButtonActive]}
             onPress={() => handleToolPress('style')}
           >
@@ -363,76 +395,57 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
               color={activeTool === 'style' || selectedColor || selectedIcon ? colors.accent : colors.textMuted}
             />
           </Pressable>
-          <Pressable
-            style={[styles.toolButton, activeTool === 'date' && styles.toolButtonActive]}
-            onPress={() => handleToolPress('date')}
-          >
-            <Calendar
-              size={20}
-              color={activeTool === 'date' || composerDate ? colors.accent : colors.textMuted}
-            />
-          </Pressable>
-          <Pressable
-            style={[styles.toolButton, isTemplate && styles.toolButtonActive]}
-            onPress={() => {
-              setIsTemplate((prev) => !prev);
-              Haptics.selectionAsync();
-            }}
-          >
-            <Bookmark
-              size={20}
-              color={isTemplate ? colors.accent : colors.textMuted}
-              fill={isTemplate ? colors.accent : 'transparent'}
-            />
-          </Pressable>
+          {context === 'backlog' && (
+            <Pressable
+              style={[styles.toolButton, isTemplate && styles.toolButtonActive]}
+              onPress={() => {
+                setIsTemplate((prev) => !prev);
+                Haptics.selectionAsync();
+              }}
+            >
+              <Bookmark
+                size={20}
+                color={isTemplate ? colors.accent : colors.textMuted}
+                fill={isTemplate ? colors.accent : 'transparent'}
+              />
+            </Pressable>
+          )}
         </View>
 
-        {/* Inline Control Area */}
-        {activeTool === 'energy' && (
+        {/* === SCHEDULE TAB === */}
+        {activeTool === 'schedule' && (
           <View style={styles.controlArea}>
-            <View style={styles.badgeRow}>
-              {ENERGY_OPTIONS.map((option) => (
-                <Pressable
-                  key={option.value}
-                  style={[
-                    styles.badge,
-                    energyLevel === option.value && styles.badgeActive,
-                  ]}
-                  onPress={() => setEnergyLevel(energyLevel === option.value ? null : option.value)}
-                >
-                  <Text
-                    style={[
-                      styles.badgeText,
-                      energyLevel === option.value && styles.badgeTextActive,
-                    ]}
-                  >
-                    {option.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {activeTool === 'time' && (
-          <View style={styles.controlArea}>
-            {/* Start/End Time Buttons */}
-            <View style={styles.timeButtonRow}>
+            {/* Date & Time row */}
+            <View style={styles.scheduleRow}>
               <Pressable
-                style={[styles.timeButton, activePicker === 'start' && styles.timeButtonActive]}
+                style={[styles.scheduleButton, activePicker === 'date' && styles.scheduleButtonActive]}
+                onPress={() => setActivePicker(activePicker === 'date' ? null : 'date')}
+              >
+                <Calendar size={14} color={composerDate ? colors.accent : colors.textMuted} />
+                <Text style={styles.scheduleButtonText}>
+                  {composerDate
+                    ? formatShortDate(composerDate)
+                    : context === 'backlog'
+                      ? 'Not Scheduled'
+                      : formatShortDate(new Date())}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.scheduleButton, activePicker === 'start' && styles.scheduleButtonActive]}
                 onPress={() => setActivePicker(activePicker === 'start' ? null : 'start')}
               >
-                <Play size={14} color={colors.accent} />
-                <Text style={styles.timeButtonText}>{formatTime(startDate)}</Text>
+                <Clock size={14} color={colors.accent} />
+                <Text style={styles.scheduleButtonText}>{formatTime(startDate)}</Text>
               </Pressable>
               <Pressable
-                style={[styles.timeButton, activePicker === 'end' && styles.timeButtonActive]}
+                style={[styles.scheduleButton, activePicker === 'end' && styles.scheduleButtonActive]}
                 onPress={() => setActivePicker(activePicker === 'end' ? null : 'end')}
               >
-                <Square size={14} color={colors.textMuted} />
-                <Text style={styles.timeButtonText}>{formatTime(endDate)}</Text>
+                <Square size={12} color={colors.textMuted} />
+                <Text style={styles.scheduleButtonText}>{formatTime(endDate)}</Text>
               </Pressable>
             </View>
+
             {/* Duration Pills */}
             <View style={styles.durationRow}>
               {DURATION_OPTIONS.map((option) => (
@@ -455,38 +468,9 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
                 </Pressable>
               ))}
             </View>
-            {/* iOS: Inline Spinner with Done button */}
-            {Platform.OS === 'ios' && activePicker !== null && (
-              <>
-                <View style={styles.pickerContainer}>
-                  <DateTimePicker
-                    value={activePicker === 'start' ? startDate : endDate}
-                    mode="time"
-                    display="spinner"
-                    onChange={activePicker === 'start' ? handleStartTimeChange : handleEndTimeChange}
-                    themeVariant="dark"
-                  />
-                </View>
-                <Pressable style={styles.pickerDoneButton} onPress={() => setActivePicker(null)}>
-                  <Text style={styles.pickerDoneText}>Done</Text>
-                </Pressable>
-              </>
-            )}
-            {/* Android: Invisible trigger that launches native modal */}
-            {Platform.OS === 'android' && activePicker !== null && (
-              <DateTimePicker
-                value={activePicker === 'start' ? startDate : endDate}
-                mode="time"
-                display="default"
-                onChange={activePicker === 'start' ? handleStartTimeChange : handleEndTimeChange}
-              />
-            )}
-          </View>
-        )}
 
-        {activeTool === 'recurrence' && (
-          <View style={styles.controlArea}>
-            <View style={styles.badgeRow}>
+            {/* Recurrence Type */}
+            <View style={styles.recurrenceRow}>
               {RECURRENCE_OPTIONS.map((option) => (
                 <Pressable
                   key={option.key}
@@ -507,9 +491,120 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
                 </Pressable>
               ))}
             </View>
+
+            {/* Weekly Day Selector */}
+            {recurrence === 'weekly' && (
+              <View style={styles.weekdayRow}>
+                {WEEKDAY_LABELS.map((label, index) => (
+                  <Pressable
+                    key={index}
+                    style={[
+                      styles.weekdayButton,
+                      recurrenceDays.includes(index) && styles.weekdayButtonActive,
+                    ]}
+                    onPress={() => toggleWeekday(index)}
+                  >
+                    <Text
+                      style={[
+                        styles.weekdayText,
+                        recurrenceDays.includes(index) && styles.weekdayTextActive,
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+
+            {/* Native Pickers */}
+            {Platform.OS === 'ios' && activePicker === 'date' && (
+              <>
+                <View style={styles.pickerContainer}>
+                  <DateTimePicker
+                    value={composerDate ?? new Date()}
+                    mode="date"
+                    display="inline"
+                    onChange={handleDateChange}
+                    themeVariant="dark"
+                  />
+                </View>
+                <Pressable style={styles.pickerDoneButton} onPress={() => setActivePicker(null)}>
+                  <Text style={styles.pickerDoneText}>Done</Text>
+                </Pressable>
+              </>
+            )}
+            {Platform.OS === 'ios' && (activePicker === 'start' || activePicker === 'end') && (
+              <>
+                <View style={styles.pickerContainer}>
+                  <DateTimePicker
+                    value={activePicker === 'start' ? startDate : endDate}
+                    mode="time"
+                    display="spinner"
+                    onChange={activePicker === 'start' ? handleStartTimeChange : handleEndTimeChange}
+                    themeVariant="dark"
+                  />
+                </View>
+                <Pressable style={styles.pickerDoneButton} onPress={() => setActivePicker(null)}>
+                  <Text style={styles.pickerDoneText}>Done</Text>
+                </Pressable>
+              </>
+            )}
+            {Platform.OS === 'android' && activePicker === 'date' && (
+              <DateTimePicker
+                value={composerDate ?? new Date()}
+                mode="date"
+                display="default"
+                onChange={handleDateChange}
+              />
+            )}
+            {Platform.OS === 'android' && (activePicker === 'start' || activePicker === 'end') && (
+              <DateTimePicker
+                value={activePicker === 'start' ? startDate : endDate}
+                mode="time"
+                display="default"
+                onChange={activePicker === 'start' ? handleStartTimeChange : handleEndTimeChange}
+              />
+            )}
           </View>
         )}
 
+        {/* === ENERGY TAB === */}
+        {activeTool === 'energy' && (
+          <View style={styles.controlArea}>
+            <View style={styles.energyRow}>
+              {ENERGY_OPTIONS.map((option) => {
+                const isSelected = energyLevel === option.value;
+                return (
+                  <Pressable
+                    key={option.value}
+                    style={[
+                      styles.energyBlock,
+                      { borderColor: isSelected ? option.color : 'transparent' },
+                      isSelected && styles.energyBlockActive,
+                    ]}
+                    onPress={() => {
+                      setEnergyLevel(isSelected ? null : option.value);
+                      Haptics.selectionAsync();
+                    }}
+                  >
+                    <View style={[styles.energyFill, { backgroundColor: isSelected ? option.color : colors.surfaceElevated }]} />
+                    <Text style={[styles.energyValue, isSelected && { color: option.color }]}>
+                      {option.value}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.energyLabel}>
+              {energyLevel
+                ? ENERGY_OPTIONS.find((o) => o.value === energyLevel)?.label ?? ''
+                : 'Tap to set energy'}
+            </Text>
+          </View>
+        )}
+
+        {/* === STYLE TAB === */}
         {activeTool === 'style' && (
           <View style={styles.controlArea}>
             <ScrollView
@@ -517,24 +612,40 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.swatchRow}
             >
-              {palette.map((color) => (
+              {palette.map((swatchColor) => (
                 <Pressable
-                  key={color}
+                  key={swatchColor}
                   style={[
                     styles.colorSwatch,
-                    { backgroundColor: color },
-                    selectedColor === color && styles.colorSwatchActive,
+                    { backgroundColor: swatchColor },
+                    selectedColor === swatchColor && styles.colorSwatchActive,
                   ]}
                   onPress={() => {
                     Haptics.selectionAsync();
-                    setSelectedColor(selectedColor === color ? null : color);
+                    setSelectedColor(selectedColor === swatchColor ? null : swatchColor);
+                    setCustomHex('');
                   }}
                 />
               ))}
             </ScrollView>
+            <View style={styles.hexInputRow}>
+              <Text style={styles.hexPrefix}>#</Text>
+              <BottomSheetTextInput
+                style={styles.hexInput}
+                value={customHex}
+                onChangeText={handleCustomHex}
+                placeholder="Custom hex"
+                placeholderTextColor={colors.textMuted}
+                maxLength={6}
+                autoCapitalize="none"
+              />
+              {customHex.length === 6 && (
+                <View style={[styles.hexPreview, { backgroundColor: `#${customHex}` }]} />
+              )}
+            </View>
             <View style={styles.iconGrid}>
-              {ICON_NAMES.map((iconName) => {
-                const IconComponent = ICON_REGISTRY[iconName];
+              {QUICK_ICON_NAMES.map((iconName) => {
+                const IconComp = ICON_REGISTRY[iconName];
                 const isSelected = selectedIcon === iconName;
                 const iconColor = isSelected
                   ? selectedColor || colors.accent
@@ -551,67 +662,17 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
                       setSelectedIcon(isSelected ? null : iconName);
                     }}
                   >
-                    <IconComponent size={20} color={iconColor} />
+                    <IconComp size={20} color={iconColor} />
                   </Pressable>
                 );
               })}
-            </View>
-          </View>
-        )}
-
-        {activeTool === 'date' && (
-          <View style={styles.controlArea}>
-            <View style={styles.dateRow}>
               <Pressable
-                style={[styles.dateSelectButton, composerDate && styles.dateSelectButtonActive]}
-                onPress={() => setShowDatePicker(!showDatePicker)}
+                style={styles.iconGridItem}
+                onPress={() => setShowIconModal(true)}
               >
-                <Calendar size={16} color={composerDate ? colors.accent : colors.textMuted} />
-                <Text style={[styles.dateSelectText, composerDate && styles.dateSelectTextActive]}>
-                  {composerDate ? formatDate(composerDate) : 'Select Date'}
-                </Text>
+                <MoreHorizontal size={20} color={colors.textMuted} />
               </Pressable>
-              {composerDate && (
-                <Pressable
-                  style={styles.dateClearButton}
-                  onPress={() => { setComposerDate(null); setShowDatePicker(false); }}
-                >
-                  <Text style={styles.dateClearText}>Clear</Text>
-                </Pressable>
-              )}
             </View>
-            <Pressable
-              style={[styles.templateToggle, isTemplate && styles.templateToggleActive]}
-              onPress={() => setIsTemplate(!isTemplate)}
-            >
-              <Text style={[styles.templateToggleText, isTemplate && styles.templateToggleTextActive]}>
-                Reusable Template
-              </Text>
-            </Pressable>
-            {Platform.OS === 'ios' && showDatePicker && (
-              <>
-                <View style={styles.pickerContainer}>
-                  <DateTimePicker
-                    value={composerDate ?? new Date()}
-                    mode="date"
-                    display="inline"
-                    onChange={handleDateChange}
-                    themeVariant="dark"
-                  />
-                </View>
-                <Pressable style={styles.pickerDoneButton} onPress={() => setShowDatePicker(false)}>
-                  <Text style={styles.pickerDoneText}>Done</Text>
-                </Pressable>
-              </>
-            )}
-            {Platform.OS === 'android' && showDatePicker && (
-              <DateTimePicker
-                value={composerDate ?? new Date()}
-                mode="date"
-                display="default"
-                onChange={handleDateChange}
-              />
-            )}
           </View>
         )}
 
@@ -630,6 +691,64 @@ export const TaskComposer = forwardRef<BottomSheetModal, TaskComposerProps>(
             />
           </Pressable>
         </View>
+
+        {/* === ICON PICKER MODAL === */}
+        <Modal
+          visible={showIconModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowIconModal(false)}
+        >
+          <View style={styles.iconModalContainer}>
+            <View style={styles.iconModalHeader}>
+              <Text style={styles.iconModalTitle}>Choose Icon</Text>
+              <Pressable
+                style={styles.iconModalClose}
+                onPress={() => setShowIconModal(false)}
+              >
+                <X size={24} color={colors.textPrimary} />
+              </Pressable>
+            </View>
+            <FlatList
+              data={ICON_NAMES}
+              numColumns={5}
+              keyExtractor={(item) => item}
+              contentContainerStyle={styles.iconModalGrid}
+              columnWrapperStyle={styles.iconModalRow}
+              renderItem={({ item: iconName }) => {
+                const IconComp = ICON_REGISTRY[iconName];
+                const isSelected = selectedIcon === iconName;
+                const iconColor = isSelected
+                  ? selectedColor || colors.accent
+                  : colors.textSecondary;
+                return (
+                  <Pressable
+                    style={[
+                      styles.iconModalItem,
+                      isSelected && styles.iconModalItemActive,
+                    ]}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      setSelectedIcon(isSelected ? null : iconName);
+                      setShowIconModal(false);
+                    }}
+                  >
+                    <IconComp size={24} color={iconColor} />
+                    <Text
+                      style={[
+                        styles.iconModalLabel,
+                        isSelected && styles.iconModalLabelActive,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {iconName}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+            />
+          </View>
+        </Modal>
       </BottomSheetView>
     </BottomSheetModal>
   );

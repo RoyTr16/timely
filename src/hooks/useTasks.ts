@@ -17,6 +17,7 @@ interface NewTaskInput {
   icon?: string;
   scheduledDate?: string;
   isTemplate?: boolean;
+  recurrenceDays?: number[];
 }
 
 interface UseTasksReturn {
@@ -79,6 +80,7 @@ export function useTasks(targetDateStr?: string): UseTasksReturn {
         icon: input.icon,
         scheduledDate: input.scheduledDate,
         isTemplate: input.isTemplate,
+        recurrenceDays: input.recurrenceDays,
       };
 
       persistTasks([newTask, ...tasks]);

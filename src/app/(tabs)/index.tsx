@@ -138,6 +138,7 @@ export default function TimelineScreen() {
           ref={bottomSheetRef}
           taskToEdit={selectedTask}
           selectedDateStr={activeDate}
+          context="timeline"
           onAddTask={addTask}
           onUpdateTask={updateTask}
           onDismiss={handleDismiss}

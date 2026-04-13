@@ -19,6 +19,25 @@ import {
   MessageCircle,
   Phone,
   Utensils,
+  Brain,
+  Bike,
+  Dog,
+  Palette,
+  Wrench,
+  GraduationCap,
+  Car,
+  Bed,
+  Leaf,
+  Flame,
+  CloudSun,
+  Sparkles,
+  Globe,
+  Wallet,
+  Headphones,
+  Pizza,
+  Trophy,
+  Pill,
+  Baby,
   type LucideIcon,
 } from 'lucide-react-native';
 
@@ -27,19 +46,20 @@ import {
  * Maps string keys to actual Lucide icon components for safe rendering.
  */
 export const ICON_REGISTRY: Record<string, LucideIcon> = {
-  Code,
+  Zap,
   Book,
+  Briefcase,
   Coffee,
   Dumbbell,
-  Briefcase,
-  Zap,
-  Calendar,
-  Heart,
-  ShoppingCart,
+  Code,
+  Monitor,
   Music,
+  Heart,
+  Brain,
+  Calendar,
+  ShoppingCart,
   Gamepad2,
   Plane,
-  Monitor,
   PenTool,
   Star,
   Camera,
@@ -47,8 +67,32 @@ export const ICON_REGISTRY: Record<string, LucideIcon> = {
   MessageCircle,
   Phone,
   Utensils,
+  Bike,
+  Dog,
+  Palette,
+  Wrench,
+  GraduationCap,
+  Car,
+  Bed,
+  Leaf,
+  Flame,
+  CloudSun,
+  Sparkles,
+  Globe,
+  Wallet,
+  Headphones,
+  Pizza,
+  Trophy,
+  Pill,
+  Baby,
 } as const;
 
 export type IconName = keyof typeof ICON_REGISTRY;
 
 export const ICON_NAMES = Object.keys(ICON_REGISTRY) as IconName[];
+
+// Quick icons shown in the composer grid (first 10)
+export const QUICK_ICON_NAMES: IconName[] = [
+  'Zap', 'Book', 'Briefcase', 'Coffee', 'Dumbbell',
+  'Code', 'Monitor', 'Music', 'Heart', 'Brain',
+];

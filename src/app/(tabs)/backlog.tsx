@@ -90,6 +90,7 @@ export default function BacklogScreen() {
           <TaskComposer
             ref={bottomSheetRef}
             templateTask={selectedTask}
+            context="backlog"
             onAddTask={addTask}
             onDismiss={handleDismiss}
           />

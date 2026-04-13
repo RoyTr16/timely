@@ -21,7 +21,7 @@ export type RecurrenceRule =
 /**
  * Energy level for task difficulty/effort estimation.
  */
-export type EnergyLevel = 1 | 2 | 3;
+export type EnergyLevel = 1 | 2 | 3 | 4 | 5;
 
 /**
  * Category for grouping related tasks with shared styling.
@@ -51,4 +51,5 @@ export interface Task {
   scheduledDate?: string; // YYYY-MM-DD format
   sortOrder?: number; // For backlog drag-and-drop ordering
   isTemplate?: boolean; // Reusable template vs one-time inbox item
+  recurrenceDays?: number[]; // Weekdays 0-6 for weekly recurrence
 }
