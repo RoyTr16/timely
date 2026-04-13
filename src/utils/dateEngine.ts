@@ -10,6 +10,8 @@ export function getFormattedDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+export const getTodayStr = () => getFormattedDate(new Date());
+
 /**
  * Returns the day of week (0 = Sunday, 6 = Saturday) for a date string.
  */

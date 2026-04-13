@@ -5,7 +5,7 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 
 import { colors } from '../../types/theme';
-import { getFormattedDate } from '../../utils';
+import { getFormattedDate, getTodayStr } from '../../utils';
 import { styles, DAY_SELECTOR_CONSTANTS } from './styles';
 
 interface DayItem {
@@ -99,6 +99,18 @@ export function DaySelector({ activeDate, onSelectDate }: DaySelectorProps) {
     setShowPicker(true);
   }, []);
 
+  const handlePrevDay = useCallback(() => {
+    const date = new Date(activeDateObj);
+    date.setDate(date.getDate() - 1);
+    onSelectDate(getFormattedDate(date));
+  }, [activeDateObj, onSelectDate]);
+
+  const handleNextDay = useCallback(() => {
+    const date = new Date(activeDateObj);
+    date.setDate(date.getDate() + 1);
+    onSelectDate(getFormattedDate(date));
+  }, [activeDateObj, onSelectDate]);
+
   const handlePress = useCallback(
     (dateStr: string) => {
       onSelectDate(dateStr);
@@ -142,41 +154,70 @@ export function DaySelector({ activeDate, onSelectDate }: DaySelectorProps) {
     []
   );
 
+  const isNotToday = activeDate !== getTodayStr();
+
   return (
     <View style={styles.container}>
       {/* Month/Year Header */}
       <View style={styles.headerRow}>
+        <View style={styles.headerLeft}>
+          <Pressable
+            style={({ pressed }) => [styles.chevronButton, pressed && { opacity: 0.7 }]}
+            onPress={handlePrevMonth}
+          >
+            <ChevronLeft size={24} color={colors.textSecondary} />
+          </Pressable>
+        </View>
         <Pressable
-          style={({ pressed }) => [styles.chevronButton, pressed && { opacity: 0.7 }]}
-          onPress={handlePrevMonth}
-        >
-          <ChevronLeft size={24} color={colors.textSecondary} />
-        </Pressable>
-        <Pressable
-          style={({ pressed }) => pressed && { opacity: 0.7 }}
+          style={({ pressed }) => [styles.headerCenter, pressed && { opacity: 0.7 }]}
           onPress={handleMonthYearPress}
         >
           <Text style={styles.monthYearText}>{monthYearLabel}</Text>
         </Pressable>
-        <Pressable
-          style={({ pressed }) => [styles.chevronButton, pressed && { opacity: 0.7 }]}
-          onPress={handleNextMonth}
-        >
-          <ChevronRight size={24} color={colors.textSecondary} />
-        </Pressable>
+        <View style={styles.headerRight}>
+          {isNotToday && (
+            <Pressable
+              style={({ pressed }) => [styles.todayPill, pressed && { opacity: 0.7 }]}
+              onPress={() => onSelectDate(getTodayStr())}
+            >
+              <Text style={styles.todayPillText}>Today</Text>
+            </Pressable>
+          )}
+          <Pressable
+            style={({ pressed }) => [styles.chevronButton, pressed && { opacity: 0.7 }]}
+            onPress={handleNextMonth}
+          >
+            <ChevronRight size={24} color={colors.textSecondary} />
+          </Pressable>
+        </View>
       </View>
 
-      <FlatList
-        ref={flatListRef}
-        data={days}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        getItemLayout={getItemLayout}
-        onScrollToIndexFailed={() => {}}
-      />
+      <View style={styles.dayListRow}>
+        <Pressable
+          style={({ pressed }) => [styles.dayChevron, pressed && { opacity: 0.7 }]}
+          onPress={handlePrevDay}
+        >
+          <ChevronLeft size={20} color={colors.textMuted} />
+        </Pressable>
+        <FlatList
+          ref={flatListRef}
+          data={days}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          getItemLayout={getItemLayout}
+          onScrollToIndexFailed={() => {}}
+          style={styles.dayList}
+        />
+        <Pressable
+          style={({ pressed }) => [styles.dayChevron, pressed && { opacity: 0.7 }]}
+          onPress={handleNextDay}
+        >
+          <ChevronRight size={20} color={colors.textMuted} />
+        </Pressable>
+      </View>
 
       {/* Native Calendar Picker */}
       {showPicker && (

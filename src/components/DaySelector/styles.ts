@@ -11,13 +11,52 @@ export const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.sm,
     marginBottom: spacing.sm,
   },
+  headerLeft: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  headerCenter: {
+    flex: 2,
+    alignItems: 'center',
+  },
+  headerRight: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   chevronButton: {
     padding: spacing.xs,
+  },
+  todayPill: {
+    paddingHorizontal: spacing.sm - 4,
+    paddingVertical: 4,
+    borderRadius: radii.md,
+    backgroundColor: `${colors.accent}33`,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  todayPillText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
+    color: colors.accent,
+  },
+  dayListRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dayChevron: {
+    padding: spacing.xs / 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dayList: {
+    flex: 1,
   },
   monthYearText: {
     fontSize: typography.sizes.lg,
