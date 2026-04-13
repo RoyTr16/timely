@@ -8,25 +8,25 @@ import Animated, {
   interpolateColor,
 } from 'react-native-reanimated';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { Bookmark, GripVertical, Repeat, Trash2, Zap } from 'lucide-react-native';
+import { Bookmark, CheckCircle, Circle, GripVertical, Repeat, Trash2, Zap } from 'lucide-react-native';
 
 import { colors, timing } from '../../types/theme';
 import type { Task } from '../../types/task';
 import { useCategories } from '../../hooks';
 import { resolveTaskStyle, ICON_REGISTRY, calculateGap } from '../../utils';
-import { Checkbox } from '../Checkbox';
 import { GlassCard } from '../GlassCard';
 import { styles, TASKROW_CONSTANTS, getEnergyColor } from './styles';
 
 interface TaskRowProps {
   task: Task;
-  onToggle: (id: string) => void;
+  onToggle: (id: string, dateStr: string) => void;
   onDelete: (id: string) => void;
   onPress: (task: Task) => void;
   onLongPress?: () => void;
   isBacklogContext?: boolean;
   isProportional?: boolean;
   previousTaskEndTime?: string;
+  currentRenderDate?: string;
 }
 
 // Layout constants for proportional rendering
@@ -34,10 +34,11 @@ const PIXELS_PER_MINUTE = 1.2;
 const MIN_HEIGHT = 64; // Floor for proportional scaling; content can grow beyond
 const MAX_GAP_PIXELS = 120;
 
-export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, isBacklogContext = false, isProportional = false, previousTaskEndTime }: TaskRowProps) {
+export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, isBacklogContext = false, isProportional = false, previousTaskEndTime, currentRenderDate }: TaskRowProps) {
   const { categories } = useCategories();
   const { color: resolvedColor, icon: resolvedIcon } = resolveTaskStyle(task, categories);
   const IconComponent = resolvedIcon ? ICON_REGISTRY[resolvedIcon] : null;
+  const isDone = (currentRenderDate && task.completedDates?.includes(currentRenderDate)) || false;
 
   // Calculate proportional dimensions
   const proportionalStyle = useMemo(() => {
@@ -68,17 +69,19 @@ export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, isBack
   // Calculate card height for explicit passing to GlassCard
   const cardMinHeight = proportionalStyle.minHeight;
 
-  const completionProgress = useSharedValue(task.isCompleted ? 1 : 0);
+  const completionProgress = useSharedValue(isDone ? 1 : 0);
 
   useEffect(() => {
-    completionProgress.value = withTiming(task.isCompleted ? 1 : 0, {
+    completionProgress.value = withTiming(isDone ? 1 : 0, {
       duration: timing.normal,
     });
-  }, [task.isCompleted, completionProgress]);
+  }, [isDone, completionProgress]);
 
   const handleToggle = useCallback(() => {
-    onToggle(task.id);
-  }, [onToggle, task.id]);
+    if (currentRenderDate) {
+      onToggle(task.id, currentRenderDate);
+    }
+  }, [onToggle, task.id, currentRenderDate]);
 
   const handleDelete = useCallback(() => {
     onDelete(task.id);
@@ -141,7 +144,10 @@ export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, isBack
       >
         <GlassCard
           tintColor={resolvedColor}
-          style={cardMinHeight ? { minHeight: cardMinHeight } : undefined}
+          style={[
+            cardMinHeight ? { minHeight: cardMinHeight } : undefined,
+            isDone && styles.cardDone,
+          ]}
         >
           <Pressable
             onPress={handlePress}
@@ -155,7 +161,13 @@ export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, isBack
             {isBacklogContext ? (
               <GripVertical size={TASKROW_CONSTANTS.taskIconSize} color={colors.textMuted} />
             ) : (
-              <Checkbox isChecked={task.isCompleted} onToggle={handleToggle} color={resolvedColor} />
+              <Pressable onPress={handleToggle} hitSlop={8}>
+                {isDone ? (
+                  <CheckCircle size={24} color={colors.accent} />
+                ) : (
+                  <Circle size={24} color={resolvedColor} />
+                )}
+              </Pressable>
             )}
           </View>
           <View style={styles.contentWrapper}>
@@ -168,11 +180,11 @@ export function TaskRow({ task, onToggle, onDelete, onPress, onLongPress, isBack
                 />
               )}
               <View style={styles.titleContainer}>
-                <Animated.Text style={[styles.title, titleAnimatedStyle]}>
+                <Animated.Text style={[styles.title, titleAnimatedStyle, isDone && styles.titleDone]}>
                   {task.title}
                 </Animated.Text>
                 {timeInfoText && (
-                  <Text style={styles.timeInfo}>{timeInfoText}</Text>
+                  <Text style={[styles.timeInfo, isDone && styles.timeInfoDone]}>{timeInfoText}</Text>
                 )}
               </View>
               {hasRecurrence && (

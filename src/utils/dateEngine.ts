@@ -35,50 +35,51 @@ function isWeekday(dayIndex: number): boolean {
  * - No scheduledDate and no recurrence: Backlog task, return false
  */
 export function isTaskActiveOnDate(task: Task, targetDateStr: string): boolean {
-  const targetDayIndex = getDayOfWeekFromStr(targetDateStr);
+  if (!task.scheduledDate) return false;
 
-  // If task has a specific scheduled date
-  if (task.scheduledDate) {
-    // Exact date match
-    if (task.scheduledDate === targetDateStr) {
+  const [ty, tm, td] = targetDateStr.split('-').map(Number);
+  const targetDate = new Date(ty, tm - 1, td);
+  targetDate.setHours(0, 0, 0, 0);
+
+  const [sy, sm, sd] = task.scheduledDate.split('-').map(Number);
+  const startDate = new Date(sy, sm - 1, sd);
+  startDate.setHours(0, 0, 0, 0);
+
+  if (targetDate < startDate) return false;
+
+  if (task.scheduledDate === targetDateStr) return true;
+
+  if (!task.recurrence) return false;
+
+  switch (task.recurrence.type) {
+    case 'daily':
       return true;
-    }
 
-    // Check recurrence patterns
-    if (task.recurrence) {
-      switch (task.recurrence.type) {
-        case 'daily':
-          return true;
-
-        case 'weekly': {
-          const scheduledDayIndex = getDayOfWeekFromStr(task.scheduledDate);
-          return targetDayIndex === scheduledDayIndex;
-        }
-
-        case 'custom_days': {
-          const dayMap = [
-            'sunday',
-            'monday',
-            'tuesday',
-            'wednesday',
-            'thursday',
-            'friday',
-            'saturday',
-          ] as const;
-          const targetDayName = dayMap[targetDayIndex];
-          return task.recurrence.days.includes(targetDayName);
-        }
-
-        default:
-          return false;
+    case 'weekly': {
+      const targetDay = targetDate.getDay();
+      if (task.recurrenceDays && task.recurrenceDays.length > 0) {
+        return task.recurrenceDays.includes(targetDay);
       }
+      return targetDay === startDate.getDay();
     }
 
-    return false;
-  }
+    case 'custom_days': {
+      const dayMap = [
+        'sunday',
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+      ] as const;
+      const targetDayName = dayMap[targetDate.getDay()];
+      return task.recurrence.days.includes(targetDayName);
+    }
 
-  // No scheduledDate = Backlog task
-  return false;
+    default:
+      return false;
+  }
 }
 
 /**

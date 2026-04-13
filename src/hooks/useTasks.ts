@@ -26,7 +26,7 @@ interface UseTasksReturn {
   backlogTasks: Task[];
   addTask: (input: NewTaskInput) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
-  toggleTask: (id: string) => void;
+  toggleTaskCompletion: (taskId: string, dateStr: string) => void;
   deleteTask: (id: string) => void;
   updateBacklogOrder: (reorderedTasks: Task[]) => void;
 }
@@ -69,7 +69,6 @@ export function useTasks(targetDateStr?: string): UseTasksReturn {
       const newTask: Task = {
         id: generateId(),
         title: input.title,
-        isCompleted: false,
         createdAt: Date.now(),
         categoryId: input.categoryId,
         recurrence: input.recurrence,
@@ -88,11 +87,16 @@ export function useTasks(targetDateStr?: string): UseTasksReturn {
     [tasks, persistTasks]
   );
 
-  const toggleTask = useCallback(
-    (id: string) => {
-      const updatedTasks = tasks.map((task) =>
-        task.id === id ? { ...task, isCompleted: !task.isCompleted } : task
-      );
+  const toggleTaskCompletion = useCallback(
+    (taskId: string, dateStr: string) => {
+      const updatedTasks = tasks.map((task) => {
+        if (task.id !== taskId) return task;
+        const dates = task.completedDates ?? [];
+        const updated = dates.includes(dateStr)
+          ? dates.filter((d) => d !== dateStr)
+          : [...dates, dateStr];
+        return { ...task, completedDates: updated };
+      });
       persistTasks(updatedTasks);
     },
     [tasks, persistTasks]
@@ -158,7 +162,7 @@ export function useTasks(targetDateStr?: string): UseTasksReturn {
     backlogTasks,
     addTask,
     updateTask,
-    toggleTask,
+    toggleTaskCompletion,
     deleteTask,
     updateBacklogOrder,
   };

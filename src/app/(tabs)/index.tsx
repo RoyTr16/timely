@@ -15,7 +15,7 @@ import { styles } from '../../styles/tabs';
 
 export default function TimelineScreen() {
   const [activeDate, setActiveDate] = useState(() => getFormattedDate(new Date()));
-  const { timelineTasks, addTask, updateTask, toggleTask, deleteTask } = useTasks(activeDate);
+  const { timelineTasks, addTask, updateTask, toggleTaskCompletion, deleteTask } = useTasks(activeDate);
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
@@ -59,15 +59,16 @@ export default function TimelineScreen() {
       return (
         <TaskRow
           task={item}
-          onToggle={toggleTask}
+          onToggle={toggleTaskCompletion}
           onDelete={deleteTask}
           onPress={handleTaskPress}
           isProportional
           previousTaskEndTime={previousTaskEndTime}
+          currentRenderDate={activeDate}
         />
       );
     },
-    [scheduledTasks, toggleTask, deleteTask, handleTaskPress]
+    [scheduledTasks, toggleTaskCompletion, deleteTask, handleTaskPress, activeDate]
   );
 
   const keyExtractor = useCallback((item: Task) => item.id, []);
@@ -94,9 +95,10 @@ export default function TimelineScreen() {
             <TaskRow
               key={task.id}
               task={task}
-              onToggle={toggleTask}
+              onToggle={toggleTaskCompletion}
               onDelete={deleteTask}
               onPress={handleTaskPress}
+              currentRenderDate={activeDate}
             />
           ))}
           {scheduledTasks.length > 0 && (
@@ -105,7 +107,7 @@ export default function TimelineScreen() {
         </View>
       );
     },
-    [flexibleTasks, scheduledTasks.length, toggleTask, deleteTask, handleTaskPress]
+    [flexibleTasks, scheduledTasks.length, toggleTaskCompletion, deleteTask, handleTaskPress, activeDate]
   );
 
   return (

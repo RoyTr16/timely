@@ -71,6 +71,16 @@ export const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
   },
+  timeInfoDone: {
+    opacity: 0.5,
+  },
+  titleDone: {
+    textDecorationLine: 'line-through',
+    opacity: 0.5,
+  },
+  cardDone: {
+    opacity: 0.5,
+  },
   recurrenceIcon: {
     marginLeft: spacing.xs,
   },

@@ -14,7 +14,7 @@ import type { Task } from '../../types/task';
 import { styles } from '../../styles/tabs';
 
 export default function BacklogScreen() {
-  const { backlogTasks, addTask, toggleTask, deleteTask, updateBacklogOrder } = useTasks();
+  const { backlogTasks, addTask, toggleTaskCompletion, deleteTask, updateBacklogOrder } = useTasks();
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
@@ -37,7 +37,7 @@ export default function BacklogScreen() {
       <ScaleDecorator>
         <TaskRow
           task={item}
-          onToggle={toggleTask}
+          onToggle={toggleTaskCompletion}
           onDelete={deleteTask}
           onPress={handleTaskPress}
           onLongPress={drag}
@@ -45,7 +45,7 @@ export default function BacklogScreen() {
         />
       </ScaleDecorator>
     ),
-    [toggleTask, deleteTask, handleTaskPress]
+    [toggleTaskCompletion, deleteTask, handleTaskPress]
   );
 
   const keyExtractor = useCallback((item: Task) => item.id, []);

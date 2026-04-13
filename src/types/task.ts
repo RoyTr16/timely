@@ -39,7 +39,7 @@ export interface Category {
 export interface Task {
   id: string;
   title: string;
-  isCompleted: boolean;
+  completedDates?: string[];
   createdAt: number;
   categoryId?: string;
   recurrence?: RecurrenceRule;
